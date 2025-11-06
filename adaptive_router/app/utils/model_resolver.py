@@ -3,17 +3,43 @@
 import logging
 from typing import List
 
-from adaptive_router.models.registry import RegistryModel
+from app.models import RegistryModel
+from adaptive_router.models.api import Model
 from adaptive_router.utils.model_parser import parse_model_spec
 from app.utils.fuzzy_matching import normalize_model_id
 
 logger = logging.getLogger(__name__)
 
 
+def _registry_model_to_model(registry_model: RegistryModel) -> Model:
+    """Convert a RegistryModel to a Model for library compatibility."""
+    # Extract pricing information (costs are per token, convert to per million tokens)
+    prompt_cost_per_million = 0.0
+    completion_cost_per_million = 0.0
+
+    if registry_model.pricing:
+        try:
+            prompt_cost = float(registry_model.pricing.prompt_cost or 0)
+            completion_cost = float(registry_model.pricing.completion_cost or 0)
+            # Convert from per-token to per-million-tokens
+            prompt_cost_per_million = prompt_cost * 1_000_000
+            completion_cost_per_million = completion_cost * 1_000_000
+        except (ValueError, TypeError):
+            # If pricing parsing fails, use default values
+            pass
+
+    return Model(
+        provider=registry_model.provider,
+        model_name=registry_model.model_name,
+        cost_per_1m_input_tokens=prompt_cost_per_million,
+        cost_per_1m_output_tokens=completion_cost_per_million,
+    )
+
+
 def resolve_models(
     model_specs: List[str], registry_models: List[RegistryModel]
-) -> List[RegistryModel]:
-    """Resolve a list of model specifications to RegistryModel objects.
+) -> List[Model]:
+    """Resolve a list of model specifications to Model objects.
 
     Uses exact matching first, then falls back to fuzzy matching if no exact match is found.
 
@@ -22,7 +48,7 @@ def resolve_models(
         registry_models: List of all available registry models
 
     Returns:
-        List of resolved RegistryModel objects
+        List of resolved Model objects
 
     Raises:
         ValueError: If any model specification is invalid or cannot be resolved
@@ -60,7 +86,7 @@ def resolve_models(
                     f"Multiple models found for '{spec}': "
                     f"{[m.unique_id() for m in candidates]}"
                 )
-            resolved_models.append(candidates[0])
+            resolved_models.append(_registry_model_to_model(candidates[0]))
             continue
 
         # No exact match - try fuzzy matching
@@ -107,7 +133,7 @@ def resolve_models(
                 f"Fuzzy match: '{spec}' resolved to '{matched_model.unique_id()}' "
                 f"(provider: {matched_model.provider}, model: {matched_model.model_name})"
             )
-            resolved_models.append(matched_model)
+            resolved_models.append(_registry_model_to_model(matched_model))
             continue
 
         # No match found at all - provide helpful error message

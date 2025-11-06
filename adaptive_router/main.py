@@ -17,21 +17,24 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from adaptive_router.core.router import ModelRouter
+from adaptive_router.models.api import Model
 from adaptive_router.models.api import (
     ModelSelectionAPIRequest,
 )
-from adaptive_router.models.registry import (
+from app.models import (
     RegistryConnectionError,
     RegistryError,
     RegistryResponseError,
     RegistryModel,
+    RegistryClientConfig,
 )
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
 from app.registry import RegistryClient, ModelRegistry
-from app.utils import enhance_model_costs_with_fuzzy_keys, resolve_models
-from adaptive_router.models.registry import RegistryClientConfig
+from app.utils import (
+    resolve_models,
+)
 
 
 env_file = Path(".env")
@@ -71,14 +74,14 @@ def build_registry_client(
     return RegistryClient(config, http_client), config
 
 
-def load_model_costs_from_registry(settings: AppSettings) -> dict[str, float]:
-    """Load model costs from the Adaptive model registry.
+def load_models_from_registry(settings: AppSettings) -> list[Model]:
+    """Load typed Model objects from the Adaptive model registry.
 
     Args:
         settings: Application settings containing registry configuration
 
     Returns:
-        Dictionary mapping model IDs to their average costs (enhanced with fuzzy variants)
+        List of Model objects with cost information
 
     Raises:
         ValueError: If registry health check fails, no models found, or fetch fails
@@ -100,41 +103,75 @@ def load_model_costs_from_registry(settings: AppSettings) -> dict[str, float]:
         raise ValueError("Model registry returned no models")
 
     provider_stats: dict[str, int] = {}
-    model_costs: dict[str, float] = {}
+    router_models: list[Model] = []
 
-    for model in models:
-        provider = (model.provider or "").strip().lower()
+    for reg_model in models:
+        provider = (reg_model.provider or "").strip().lower()
         if provider:
             provider_stats[provider] = provider_stats.get(provider, 0) + 1
 
         try:
-            model_id = model.unique_id()
+            reg_model.unique_id()
         except RegistryError as err:
             logger.warning("Skipping registry model without identifier: %s", err)
             continue
 
-        avg_cost = model.average_price()
-        if avg_cost is None:
-            avg_cost = 1.0  # DEFAULT_MODEL_COST
+        # Extract pricing information (costs are per token, convert to per million tokens)
+        prompt_cost_per_million = 0.0
+        completion_cost_per_million = 0.0
 
-        model_costs[model_id] = avg_cost
+        if reg_model.pricing:
+            try:
+                prompt_cost = float(reg_model.pricing.prompt_cost or 0)
+                completion_cost = float(reg_model.pricing.completion_cost or 0)
+                # Convert from per-token to per-million-tokens
+                prompt_cost_per_million = prompt_cost * 1_000_000
+                completion_cost_per_million = completion_cost * 1_000_000
+            except (ValueError, TypeError):
+                # If pricing parsing fails, use default values
+                pass
+
+        # If we couldn't extract pricing, use defaults
+        if prompt_cost_per_million == 0 and completion_cost_per_million == 0:
+            logger.warning(
+                "Model %s:%s has missing registry pricing (prompt: %.6f, completion: %.6f). "
+                "Using configurable default cost of %.6f per 1M tokens for both input and output.",
+                reg_model.provider,
+                reg_model.model_name,
+                prompt_cost_per_million,
+                completion_cost_per_million,
+                settings.default_model_cost,
+            )
+            prompt_cost_per_million = settings.default_model_cost
+            completion_cost_per_million = settings.default_model_cost
+
+        # Skip models with invalid (negative or zero) pricing
+        if prompt_cost_per_million <= 0 or completion_cost_per_million <= 0:
+            logger.warning(
+                "Skipping model %s:%s with invalid pricing (prompt: %.6f, completion: %.6f)",
+                reg_model.provider,
+                reg_model.model_name,
+                prompt_cost_per_million,
+                completion_cost_per_million,
+            )
+            continue
+
+        # Create typed Model object
+        router_model = Model(
+            provider=reg_model.provider,
+            model_name=reg_model.model_name,
+            cost_per_1m_input_tokens=prompt_cost_per_million,
+            cost_per_1m_output_tokens=completion_cost_per_million,
+        )
+        router_models.append(router_model)
 
     logger.info(
-        "Loaded costs for %d models across %d providers",
-        len(model_costs),
+        "Loaded %d models across %d providers from registry",
+        len(router_models),
         len(provider_stats),
     )
 
-    # Enhance model_costs with normalized variant keys for fuzzy matching
-    enhanced_costs = enhance_model_costs_with_fuzzy_keys(model_costs)
-
-    logger.info(
-        "Enhanced model costs with fuzzy matching: %d original models -> %d lookup keys",
-        len(model_costs),
-        len(enhanced_costs),
-    )
-
-    return enhanced_costs
+    return router_models
 
 
 # Inlined from model_router_factory.py
@@ -152,7 +189,7 @@ def create_model_router(settings: AppSettings) -> ModelRouter:
     """
     logger.info("Creating ModelRouter...")
 
-    model_costs = load_model_costs_from_registry(settings)
+    models = load_models_from_registry(settings)
 
     from adaptive_router.models.storage import MinIOSettings
 
@@ -169,7 +206,7 @@ def create_model_router(settings: AppSettings) -> ModelRouter:
 
     router = ModelRouter.from_minio(
         settings=minio_settings,
-        model_costs=model_costs,
+        models=models,
     )
 
     logger.info("ModelRouter created successfully")

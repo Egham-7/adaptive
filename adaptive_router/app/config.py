@@ -34,6 +34,10 @@ class AppSettings(BaseSettings):
         default=DEFAULT_REGISTRY_TIMEOUT,
         description="Timeout for registry requests in seconds",
     )
+    default_model_cost: float = Field(
+        default=DEFAULT_MODEL_COST,
+        description="Default cost per 1M tokens when registry pricing is missing",
+    )
 
     # MinIO/S3 settings
     minio_private_endpoint: str = Field(

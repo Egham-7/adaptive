@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from adaptive_router.models.api import ModelSelectionRequest
-from adaptive_router.models.registry import RegistryModel
+from adaptive_router.models.api import Model
 from adaptive_router.models.storage import (
     RouterProfile,
     ScalerParameters,
@@ -57,11 +57,26 @@ def mock_router():
         ),
     )
 
-    mock_costs = {
-        "openai:gpt-4": 30.0,
-        "openai:gpt-3.5-turbo": 1.0,
-        "anthropic:claude-3-sonnet-20240229": 15.0,
-    }
+    mock_models = [
+        Model(
+            provider="openai",
+            model_name="gpt-4",
+            cost_per_1m_input_tokens=3.0,
+            cost_per_1m_output_tokens=27.0,
+        ),
+        Model(
+            provider="openai",
+            model_name="gpt-3.5-turbo",
+            cost_per_1m_input_tokens=0.2,
+            cost_per_1m_output_tokens=0.8,
+        ),
+        Model(
+            provider="anthropic",
+            model_name="claude-3-sonnet-20240229",
+            cost_per_1m_input_tokens=2.25,
+            cost_per_1m_output_tokens=12.75,
+        ),
+    ]
 
     def mock_build_cluster_engine(self, profile, allow_trust_remote_code):
         mock_engine = Mock()
@@ -72,7 +87,7 @@ def mock_router():
     with patch.object(
         ModelRouter, "_build_cluster_engine_from_data", mock_build_cluster_engine
     ):
-        router = ModelRouter(profile=mock_profile, model_costs=mock_costs)
+        router = ModelRouter(profile=mock_profile, models=mock_models)
         return router
 
 
@@ -109,11 +124,11 @@ class TestModelRouter:
     def test_select_model_with_full_models(self, mock_router: ModelRouter) -> None:
         """Test model selection when full models are provided."""
         sample_models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-4",
-                context_length=200000,
-                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             ),
         ]
 
@@ -168,12 +183,13 @@ class TestModelRouter:
         assert isinstance(response.alternatives, list)
 
     def test_partial_model_filtering(self, mock_router: ModelRouter) -> None:
-        """Test filtering with partial RegistryModel (minimal fields)."""
+        """Test filtering with partial Model (minimal fields)."""
         partial_models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-4",
-                # Missing optional fields like pricing, context_length
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             )
         ]
 
@@ -218,11 +234,11 @@ class TestModelRouterEdgeCases:
         """Test that invalid cost bias values raise validation errors."""
 
         models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-5",
-                context_length=200000,
-                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             )
         ]
 

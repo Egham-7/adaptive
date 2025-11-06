@@ -6,9 +6,54 @@ when making model selection requests to the adaptive router service.
 
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
-from adaptive_router.models.registry import RegistryModel
+
+class Model(BaseModel):
+    """Model specification for routing with cost information.
+
+    Contains the essential fields needed for model identification
+    and routing decisions, including mandatory cost data.
+
+    Attributes:
+        provider: Model provider (e.g., "openai", "anthropic")
+        model_name: Model name (e.g., "gpt-4", "claude-sonnet-4-5")
+        cost_per_1m_input_tokens: Cost per 1M input tokens
+        cost_per_1m_output_tokens: Cost per 1M output tokens
+    """
+
+    provider: str
+    model_name: str
+    cost_per_1m_input_tokens: float = Field(
+        ..., ge=0, description="Cost per 1M input tokens"
+    )
+    cost_per_1m_output_tokens: float = Field(
+        ..., ge=0, description="Cost per 1M output tokens"
+    )
+
+    @property
+    def cost_per_1m_tokens(self) -> float:
+        """Average cost per million tokens (for routing calculations)."""
+        return (self.cost_per_1m_input_tokens + self.cost_per_1m_output_tokens) / 2.0
+
+    def unique_id(self) -> str:
+        """Construct the router-compatible unique identifier.
+
+        Returns:
+            Unique identifier in format "provider:model_name"
+
+        Raises:
+            ValueError: If provider or model_name is empty
+        """
+        provider = (self.provider or "").strip().lower()
+        if not provider:
+            raise ValueError("Model missing provider field")
+
+        model_name = self.model_name.strip().lower()
+        if not model_name:
+            raise ValueError(f"Model '{provider}' missing model_name")
+
+        return f"{provider}:{model_name}"
 
 
 class ModelSelectionRequest(BaseModel):
@@ -38,7 +83,7 @@ class ModelSelectionRequest(BaseModel):
     # Our custom parameters for model selection
     user_id: str | None = None
 
-    models: list[RegistryModel] | None = None
+    models: list[Model] | None = None
     cost_bias: float | None = None
     complexity_threshold: float | None = None
     token_threshold: int | None = None
@@ -62,7 +107,7 @@ class ModelSelectionAPIRequest(BaseModel):
     """API request model that accepts model specifications as strings.
 
     This is the external API model that accepts "provider:model_name" strings,
-    which are then resolved to RegistryModel objects internally.
+    which are then resolved to Model objects internally.
     """
 
     prompt: str
@@ -85,7 +130,7 @@ class ModelSelectionAPIRequest(BaseModel):
         return v
 
     def to_internal_request(
-        self, resolved_models: list[RegistryModel] | None
+        self, resolved_models: list[Model] | None
     ) -> ModelSelectionRequest:
         """Convert to internal ModelSelectionRequest with resolved models."""
         return ModelSelectionRequest(

@@ -6,7 +6,7 @@ import httpx
 import pytest
 from requests import Response
 
-from adaptive_router.models.registry import RegistryClientConfig
+from app.models import RegistryClientConfig
 from app.registry.client import RegistryClient
 
 

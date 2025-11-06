@@ -21,12 +21,16 @@ from adaptive_router.loaders.local import LocalFileProfileLoader
 from adaptive_router.loaders.minio import MinIOProfileLoader
 from adaptive_router.models.api import (
     Alternative,
+    Model,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_router.models.routing import ModelFeatureVector
+from adaptive_router.models.routing import (
+    ModelFeatureVector,
+    ModelScore,
+    AlternativeScore,
+)
 from adaptive_router.models.storage import RouterProfile, MinIOSettings
-from adaptive_router.models.registry import RegistryModel
 from adaptive_router.core.cluster_engine import ClusterEngine
 
 logger = logging.getLogger(__name__)
@@ -47,7 +51,7 @@ class ModelRouter:
     def __init__(
         self,
         profile: RouterProfile,
-        model_costs: Dict[str, float],
+        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -57,7 +61,7 @@ class ModelRouter:
 
         Args:
             profile: RouterProfile with cluster data and error rates per model
-            model_costs: Dict mapping model_id to cost_per_1m_tokens
+            models: List of Model objects with cost information
             lambda_min: Minimum lambda value for cost-quality tradeoff (default: 0.0)
             lambda_max: Maximum lambda value for cost-quality tradeoff (default: 2.0)
             default_cost_preference: Default cost preference when not specified (default: 0.5)
@@ -67,7 +71,7 @@ class ModelRouter:
                                    Defaults to False for security.
 
         Raises:
-            ValueError: If model_costs don't match profile.llm_profiles
+            ValueError: If models don't match profile.llm_profiles
         """
         n_clusters = profile.metadata.n_clusters
         logger.info(f"Initializing ModelRouter with {n_clusters} clusters")
@@ -87,6 +91,12 @@ class ModelRouter:
             f"silhouette score: {profile.metadata.silhouette_score or 'N/A'}"
         )
 
+        # Create mapping from model_id to cost
+        model_costs: Dict[str, float] = {}
+        for model in models:
+            model_id = model.unique_id()
+            model_costs[model_id] = model.cost_per_1m_tokens
+
         self.model_features: Dict[str, ModelFeatureVector] = {}
 
         for model_id, error_rates in profile.llm_profiles.items():
@@ -94,9 +104,17 @@ class ModelRouter:
                 logger.warning(f"Model {model_id} missing cost data, skipping")
                 continue
 
+            # Extract input and output costs from the model
+            matching_models = [m for m in models if m.unique_id() == model_id]
+            if not matching_models:
+                logger.warning(f"Model {model_id} not found in models list, skipping")
+                continue
+
+            model = matching_models[0]
             self.model_features[model_id] = ModelFeatureVector(
                 error_rates=error_rates,
-                cost_per_1m_tokens=model_costs[model_id],
+                cost_per_1m_input_tokens=model.cost_per_1m_input_tokens,
+                cost_per_1m_output_tokens=model.cost_per_1m_output_tokens,
             )
             logger.debug(
                 f"Loaded profile for {model_id} with cost {model_costs[model_id]}"
@@ -300,7 +318,7 @@ class ModelRouter:
             models_to_score = self.model_features
 
         # 4. Compute routing scores for each model
-        model_scores = {}
+        model_scores: Dict[str, ModelScore] = {}
 
         for model_id, features in models_to_score.items():
             error_rate = features.error_rates[cluster_id]
@@ -309,16 +327,16 @@ class ModelRouter:
             normalized_cost = self._normalize_cost(cost)
             score = error_rate + lambda_param * normalized_cost
 
-            model_scores[model_id] = {
-                "score": score,
-                "error_rate": error_rate,
-                "accuracy": 1.0 - error_rate,
-                "cost": cost,
-                "normalized_cost": normalized_cost,
-            }
+            model_scores[model_id] = ModelScore(
+                score=score,
+                error_rate=error_rate,
+                accuracy=1.0 - error_rate,
+                cost=cost,
+                normalized_cost=normalized_cost,
+            )
 
         # 5. Select best model (lowest score)
-        best_model_id = min(model_scores, key=lambda k: model_scores[k]["score"])
+        best_model_id = min(model_scores, key=lambda k: model_scores[k].score)
         best_scores = model_scores[best_model_id]
 
         routing_time = (time.time() - start_time) * 1000
@@ -332,14 +350,14 @@ class ModelRouter:
         )
 
         # Prepare alternatives
-        alternatives_data = [
-            {
-                "model_id": mid,
-                "score": scores["score"],
-                "accuracy": scores["accuracy"],
-                "cost": scores["cost"],
-            }
-            for mid, scores in sorted(model_scores.items(), key=lambda x: x[1]["score"])
+        alternatives: List[AlternativeScore] = [
+            AlternativeScore(
+                model_id=mid,
+                score=scores.score,
+                accuracy=scores.accuracy,
+                cost=scores.cost,
+            )
+            for mid, scores in sorted(model_scores.items(), key=lambda x: x[1].score)
             if mid != best_model_id
         ]
 
@@ -360,9 +378,8 @@ class ModelRouter:
 
         # Convert alternatives to Alternative objects
         alternatives_list = []
-        for alt in alternatives_data[:3]:  # Limit to top 3 alternatives
-            alt_model_id: str = alt["model_id"]  # type: ignore[assignment]
-            alternatives_list.append(Alternative(model_id=alt_model_id))
+        for alt in alternatives[:3]:  # Limit to top 3 alternatives
+            alternatives_list.append(Alternative(model_id=alt.model_id))
 
         # Convert to ModelSelectionResponse
         response = ModelSelectionResponse(
@@ -373,8 +390,8 @@ class ModelRouter:
         logger.info(
             f"Selected model: {best_model_id} "
             f"(cluster {cluster_id}, "
-            f"accuracy {best_scores['accuracy']:.2%}, "
-            f"score {best_scores['score']:.3f}, "
+            f"accuracy {best_scores.accuracy:.2%}, "
+            f"score {best_scores.score:.3f}, "
             f"routing_time {routing_time:.2f}ms)"
         )
 
@@ -384,7 +401,7 @@ class ModelRouter:
     def from_profile(
         cls,
         profile: RouterProfile,
-        model_costs: Dict[str, float],
+        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -392,7 +409,7 @@ class ModelRouter:
     ) -> ModelRouter:
         return cls(
             profile=profile,
-            model_costs=model_costs,
+            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
@@ -403,7 +420,7 @@ class ModelRouter:
     def from_minio(
         cls,
         settings: MinIOSettings,
-        model_costs: Dict[str, float],
+        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -413,7 +430,7 @@ class ModelRouter:
         profile = loader.load_profile()
         return cls.from_profile(
             profile=profile,
-            model_costs=model_costs,
+            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
@@ -424,7 +441,7 @@ class ModelRouter:
     def from_local_file(
         cls,
         profile_path: str | Path,
-        model_costs: Dict[str, float],
+        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -434,16 +451,14 @@ class ModelRouter:
         profile = loader.load_profile()
         return cls.from_profile(
             profile=profile,
-            model_costs=model_costs,
+            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
             allow_trust_remote_code=allow_trust_remote_code,
         )
 
-    def _filter_models_by_request(
-        self, models: List[RegistryModel]
-    ) -> List[str] | None:
+    def _filter_models_by_request(self, models: List[Model]) -> List[str] | None:
         """Filter supported models based on request model specifications.
 
         This method provides a scalable filtering mechanism that can handle:
@@ -452,7 +467,7 @@ class ModelRouter:
         - Future filters (e.g., cost thresholds, capabilities, etc.)
 
         Args:
-            models: List of RegistryModel objects with filter criteria
+            models: List of Model objects with filter criteria
 
         Returns:
             List of allowed model IDs in "provider:model_name" format,
@@ -575,7 +590,7 @@ class ModelRouter:
         cluster_id: int,
         cost_preference: float,
         lambda_param: float,
-        selected_scores: Dict[str, Any],
+        selected_scores: ModelScore,
     ) -> str:
         """Generate human-readable reasoning for routing decision.
 
@@ -602,7 +617,7 @@ class ModelRouter:
             parts.append(f"Quality-optimized routing (λ={lambda_param:.2f})")
 
         # Performance info
-        accuracy = selected_scores["accuracy"]
+        accuracy = selected_scores.accuracy
         if accuracy >= 0.95:
             parts.append(f"Excellent predicted accuracy ({accuracy:.0%})")
         elif accuracy >= 0.75:

@@ -33,7 +33,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adaptive_router import ModelRouter, ModelSelectionRequest
-from adaptive_router.models.registry import RegistryModel
+from adaptive_router.models.api import Model
+from app.models import RegistryModel
 
 console = Console()
 
@@ -501,14 +502,24 @@ def run_all_tests(args: argparse.Namespace) -> Dict[str, Any]:
             import yaml
 
             config = yaml.safe_load(f)
-            model_costs = {
-                model["id"]: model["cost_per_1m_tokens"]
-                for model in config.get("gpt5_models", [])
-            }
+            models = []
+            for model_data in config.get("gpt5_models", []):
+                # Parse provider and model name from id
+                provider, model_name = model_data["id"].split(":", 1)
+                models.append(
+                    Model(
+                        provider=provider,
+                        model_name=model_name,
+                        cost_per_1m_input_tokens=model_data["cost_per_1m_input_tokens"],
+                        cost_per_1m_output_tokens=model_data[
+                            "cost_per_1m_output_tokens"
+                        ],
+                    )
+                )
 
         router = ModelRouter.from_local_file(
             profile_path=profile_path,
-            model_costs=model_costs,
+            models=models,
         )
         console.print("✅ [green]Router initialized successfully[/green]\n")
     except Exception as e:

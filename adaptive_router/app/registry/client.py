@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 import httpx
 
-from adaptive_router.models.registry import (
+from app.models import (
     RegistryClientConfig,
     RegistryConnectionError,
     RegistryModel,

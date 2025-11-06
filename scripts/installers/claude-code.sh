@@ -257,7 +257,7 @@ configure_claude() {
     echo "{"
     echo '  "env": {'
     echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
-    echo '    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api/v1",'
+    echo '    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api",'
     echo '    "API_TIMEOUT_MS": "3000000",'
     echo '    "ANTHROPIC_MODEL": "",'
     echo '    "ANTHROPIC_SMALL_FAST_MODEL": ""'
@@ -412,7 +412,7 @@ main() {
     echo "🔧 Manual Setup (if needed):"
     echo "   Configuration: ~/.claude/settings.json"
     echo "   Expected format:"
-    echo '   {"env":{"ANTHROPIC_AUTH_TOKEN":"your_key","ANTHROPIC_BASE_URL":"https://www.llmadaptive.uk/api/v1"}}'
+    echo '   {"env":{"ANTHROPIC_AUTH_TOKEN":"your_key","ANTHROPIC_BASE_URL":"https://www.llmadaptive.uk/api"}}'
     echo ""
     echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
     exit 1

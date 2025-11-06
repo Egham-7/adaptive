@@ -84,27 +84,27 @@ class MinIOProfileLoader(ProfileLoader):
 
             return profile
 
-        except self.s3.exceptions.NoSuchKey:
-            error_msg = f"Profile not found in MinIO: s3://{self.bucket_name}/{self.profile_key}"
-            logger.error(error_msg)
-            raise FileNotFoundError(error_msg)
-
         except json.JSONDecodeError as e:
             error_msg = f"Corrupted JSON in MinIO profile: {e}"
             logger.error(error_msg)
             raise ValueError(error_msg)
+
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "Unknown")
+            if error_code == "NoSuchKey":
+                error_msg = f"Profile not found in MinIO: s3://{self.bucket_name}/{self.profile_key}"
+                logger.error(error_msg)
+                raise FileNotFoundError(error_msg)
+            else:
+                error_msg = f"MinIO error loading profile: {error_code} - {e}"
+                logger.error(error_msg)
+                raise
 
         except Exception as e:
             if "validation error" in str(e).lower():
                 error_msg = f"Profile validation failed: {e}"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
-            raise
-
-        except ClientError as e:
-            error_code = e.response.get("Error", {}).get("Code", "Unknown")
-            error_msg = f"MinIO error loading profile: {error_code} - {e}"
-            logger.error(error_msg)
             raise
 
     def health_check(self) -> bool:
