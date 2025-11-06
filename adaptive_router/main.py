@@ -189,14 +189,14 @@ def normalize_model_id(model_id: str) -> list[str]:
         4. With dots instead of hyphens in version numbers
 
     Examples:
-        >>> normalize_model_id("anthropic:claude-sonnet-4-5-20250929")
+         >>> normalize_model_id("anthropic/claude-sonnet-4-5-20250929")
         [
             "anthropic:claude-sonnet-4-5-20250929",
             "anthropic:claude-sonnet-4-5",
             "anthropic:claude-sonnet-4.5"
         ]
 
-        >>> normalize_model_id("openai:gpt-4-turbo-2024-04-09")
+         >>> normalize_model_id("openai/gpt-4-turbo-2024-04-09")
         [
             "openai:gpt-4-turbo-2024-04-09",
             "openai:gpt-4-turbo",
@@ -225,19 +225,6 @@ def normalize_model_id(model_id: str) -> list[str]:
 
     for transform in transformations:
         variant = transform(model_id)
-        if variant not in seen:
-            seen.add(variant)
-            variants.append(variant)
-
-    # Add cross-separator variants (: <-> /) for better matching between systems
-    cross_separator_variants: list[str] = []
-    for variant in variants:
-        if ":" in variant:
-            cross_separator_variants.append(variant.replace(":", "/"))
-        elif "/" in variant:
-            cross_separator_variants.append(variant.replace("/", ":"))
-
-    for variant in cross_separator_variants:
         if variant not in seen:
             seen.add(variant)
             variants.append(variant)
