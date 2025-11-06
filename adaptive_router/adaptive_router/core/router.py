@@ -362,18 +362,18 @@ class ModelRouter:
         ]
 
         # Parse model ID to extract provider and model name
-        if ":" not in best_model_id:
+        if "/" not in best_model_id:
             raise ValueError(
                 f"Invalid model ID format: {best_model_id}. "
-                f"Expected format: 'provider:model_name' (e.g., 'openai:gpt-4')"
+                f"Expected format: 'provider/model_name' (e.g., 'openai/gpt-4')"
             )
 
-        selected_model_parts = best_model_id.split(":", 1)
+        selected_model_parts = best_model_id.split("/", 1)
         if len(selected_model_parts) != 2 or not all(selected_model_parts):
             raise ValueError(
                 f"Invalid model ID format: {best_model_id}. "
                 f"Both provider and model_name must be non-empty. "
-                f"Expected format: 'provider:model_name'"
+                f"Expected format: 'provider/model_name'"
             )
 
         # Convert alternatives to Alternative objects
@@ -485,7 +485,7 @@ class ModelRouter:
         for m in models:
             if m.provider and m.model_name:
                 # Full model specification - exact match required
-                model_id = f"{m.provider.lower()}:{m.model_name.lower()}"
+                model_id = f"{m.provider.lower()}/{m.model_name.lower()}"
                 explicit_models.append(model_id)
             elif m.provider:
                 # Provider-only filter - match all models from this provider

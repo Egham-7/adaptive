@@ -94,7 +94,7 @@ class RegistryModel(BaseModel):
         """Construct the router-compatible unique identifier.
 
         Returns:
-            Unique identifier in format "provider:model"
+            Unique identifier in format "provider/model_name"
 
         Raises:
             RegistryError: If provider or model_name is missing
@@ -108,7 +108,7 @@ class RegistryModel(BaseModel):
 
         model_name = self.model_name.strip().lower()
 
-        return f"{provider}:{model_name}"
+        return f"{provider}/{model_name}"
 
     def average_price(self) -> float | None:
         """Calculate average price from available pricing fields.

@@ -37,9 +37,9 @@ def mock_router():
             cluster_centers=[[0.0] * 100 for _ in range(10)],
         ),
         llm_profiles={
-            "openai:gpt-4": [0.08] * 10,
-            "openai:gpt-3.5-turbo": [0.15] * 10,
-            "anthropic:claude-3-sonnet-20240229": [0.10] * 10,
+            "openai/gpt-4": [0.08] * 10,
+            "openai/gpt-3.5-turbo": [0.15] * 10,
+            "anthropic/claude-3-sonnet-20240229": [0.10] * 10,
         },
         tfidf_vocabulary=TFIDFVocabularyData(
             vocabulary={"test": 0},

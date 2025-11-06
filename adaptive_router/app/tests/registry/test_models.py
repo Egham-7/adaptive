@@ -57,7 +57,7 @@ def test_refresh_fetches_models(mock_client: Mock) -> None:
 
 
 def test_get_by_unique_id(model_registry: ModelRegistry) -> None:
-    model = model_registry.get("openai:gpt-4")
+    model = model_registry.get("openai/gpt-4")
     assert model is not None
     assert model.provider == "openai"
 
@@ -93,5 +93,5 @@ def test_refresh_replaces_cache(mock_client: Mock) -> None:
     mock_client.list_models.return_value = [replacement]
     registry.refresh()
 
-    assert registry.get("mistral:mistral-large") is not None
-    assert registry.get("openai:gpt-4") is None
+    assert registry.get("mistral/mistral-large") is not None
+    assert registry.get("openai/gpt-4") is None

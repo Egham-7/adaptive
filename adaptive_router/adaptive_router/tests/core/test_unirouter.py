@@ -442,7 +442,7 @@ class TestRouterServiceMocked:
                 cluster_centers=[[0.0] * 100 for _ in range(5)],
             ),
             llm_profiles={
-                "openai:gpt-4": [0.08] * 5,
+                "openai/gpt-4": [0.08] * 5,
             },
             tfidf_vocabulary=TFIDFVocabularyData(
                 vocabulary={"test": 0},

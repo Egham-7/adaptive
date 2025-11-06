@@ -545,7 +545,7 @@ def create_app() -> FastAPI:
                     f"Selected model {selected_model_id} not found in registry, using minimal data"
                 )
                 # Fallback: create minimal RegistryModel by parsing model_id
-                parts = selected_model_id.split(":", 1)
+                parts = selected_model_id.split("/", 1)
                 selected_registry_model = RegistryModel(
                     provider=parts[0] if len(parts) == 2 else "unknown",
                     model_name=parts[1] if len(parts) == 2 else selected_model_id,

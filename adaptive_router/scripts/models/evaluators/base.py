@@ -242,7 +242,7 @@ Select the letter of the correct answer."""
             IOError: If file cannot be written
         """
         # Create model ID and filename
-        model_id = f"{self.provider}:{self.model}"
+        model_id = f"{self.provider}/{self.model}"
         filename = model_id.replace(":", "_").replace("/", "_") + "_predictions.json"
         output_file = output_dir / filename
 
