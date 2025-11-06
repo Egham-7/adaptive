@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from adaptive_router.models.api import ModelSelectionRequest
-from adaptive_router.models.registry import RegistryModel
+from adaptive_router.models.api import Model
 from adaptive_router.models.storage import (
     RouterProfile,
     ScalerParameters,
@@ -109,11 +109,9 @@ class TestModelRouter:
     def test_select_model_with_full_models(self, mock_router: ModelRouter) -> None:
         """Test model selection when full models are provided."""
         sample_models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-4",
-                context_length=200000,
-                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
             ),
         ]
 
@@ -168,12 +166,11 @@ class TestModelRouter:
         assert isinstance(response.alternatives, list)
 
     def test_partial_model_filtering(self, mock_router: ModelRouter) -> None:
-        """Test filtering with partial RegistryModel (minimal fields)."""
+        """Test filtering with partial Model (minimal fields)."""
         partial_models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-4",
-                # Missing optional fields like pricing, context_length
             )
         ]
 
@@ -218,11 +215,9 @@ class TestModelRouterEdgeCases:
         """Test that invalid cost bias values raise validation errors."""
 
         models = [
-            RegistryModel(
+            Model(
                 provider="openai",
                 model_name="gpt-5",
-                context_length=200000,
-                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
             )
         ]
 

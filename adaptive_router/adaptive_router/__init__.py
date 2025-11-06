@@ -52,14 +52,8 @@ from adaptive_router.models.storage import MinIOSettings
 # TIER 2: Configuration & Integration
 # ============================================================================
 
-# Registry types (for model filtering and metadata)
-from adaptive_router.models.registry import (
-    RegistryClientConfig,
-    RegistryConnectionError,
-    RegistryError,
-    RegistryModel,
-    RegistryResponseError,
-)
+# Model types for routing
+from adaptive_router.models.api import Model
 
 # Profile loaders (for custom profile loading)
 from adaptive_router.loaders import (
@@ -132,12 +126,8 @@ __all__ = [
     # ========================================================================
     # Tier 2: Configuration & Integration
     # ========================================================================
-    # Registry
-    "RegistryModel",
-    "RegistryClientConfig",
-    "RegistryError",
-    "RegistryConnectionError",
-    "RegistryResponseError",
+    # Model types
+    "Model",
     # Loaders
     "ProfileLoader",
     "LocalFileProfileLoader",

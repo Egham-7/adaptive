@@ -8,7 +8,30 @@ from typing import Any
 
 from pydantic import BaseModel, field_validator
 
-from adaptive_router.models.registry import RegistryModel
+
+class Model(BaseModel):
+    """Basic model representation for routing and filtering.
+
+    Contains only the essential fields needed for model identification
+    and routing decisions, without registry-specific metadata.
+
+    Attributes:
+        provider: Model provider (e.g., "openai", "anthropic")
+        model_name: Model name (e.g., "gpt-4", "claude-sonnet-4-5")
+    """
+
+    provider: str
+    model_name: str
+
+    def unique_id(self) -> str:
+        """Construct the router-compatible unique identifier.
+
+        Returns:
+            Unique identifier in format "provider:model_name"
+        """
+        provider = (self.provider or "").strip().lower()
+        model_name = self.model_name.strip().lower()
+        return f"{provider}:{model_name}"
 
 
 class ModelSelectionRequest(BaseModel):
@@ -38,7 +61,7 @@ class ModelSelectionRequest(BaseModel):
     # Our custom parameters for model selection
     user_id: str | None = None
 
-    models: list[RegistryModel] | None = None
+    models: list[Model] | None = None
     cost_bias: float | None = None
     complexity_threshold: float | None = None
     token_threshold: int | None = None
@@ -62,7 +85,7 @@ class ModelSelectionAPIRequest(BaseModel):
     """API request model that accepts model specifications as strings.
 
     This is the external API model that accepts "provider:model_name" strings,
-    which are then resolved to RegistryModel objects internally.
+    which are then resolved to Model objects internally.
     """
 
     prompt: str
@@ -85,7 +108,7 @@ class ModelSelectionAPIRequest(BaseModel):
         return v
 
     def to_internal_request(
-        self, resolved_models: list[RegistryModel] | None
+        self, resolved_models: list[Model] | None
     ) -> ModelSelectionRequest:
         """Convert to internal ModelSelectionRequest with resolved models."""
         return ModelSelectionRequest(

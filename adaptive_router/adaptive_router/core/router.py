@@ -26,7 +26,7 @@ from adaptive_router.models.api import (
 )
 from adaptive_router.models.routing import ModelFeatureVector
 from adaptive_router.models.storage import RouterProfile, MinIOSettings
-from adaptive_router.models.registry import RegistryModel
+from adaptive_router.models.api import Model
 from adaptive_router.core.cluster_engine import ClusterEngine
 
 logger = logging.getLogger(__name__)
@@ -441,9 +441,7 @@ class ModelRouter:
             allow_trust_remote_code=allow_trust_remote_code,
         )
 
-    def _filter_models_by_request(
-        self, models: List[RegistryModel]
-    ) -> List[str] | None:
+    def _filter_models_by_request(self, models: List[Model]) -> List[str] | None:
         """Filter supported models based on request model specifications.
 
         This method provides a scalable filtering mechanism that can handle:
@@ -452,7 +450,7 @@ class ModelRouter:
         - Future filters (e.g., cost thresholds, capabilities, etc.)
 
         Args:
-            models: List of RegistryModel objects with filter criteria
+            models: List of Model objects with filter criteria
 
         Returns:
             List of allowed model IDs in "provider:model_name" format,

@@ -5,15 +5,9 @@ Models module for Adaptive AI.
 
 from .api import (
     Alternative,
+    Model,
     ModelSelectionRequest,
     ModelSelectionResponse,
-)
-from .registry import (
-    RegistryClientConfig,
-    RegistryConnectionError,
-    RegistryError,
-    RegistryModel,
-    RegistryResponseError,
 )
 from .config import (
     ModelConfig,
@@ -51,6 +45,7 @@ __all__ = [
     "HealthResponse",
     "MCQAnswer",
     "MinIOSettings",
+    "Model",
     "ModelConfig",
     "ModelFeatureVector",
     "ModelFeatures",
@@ -59,11 +54,6 @@ __all__ = [
     "ModelSelectionRequest",
     "ModelSelectionResponse",
     "ProfileMetadata",
-    "RegistryClientConfig",
-    "RegistryConnectionError",
-    "RegistryError",
-    "RegistryModel",
-    "RegistryResponseError",
     "RouterProfile",
     "RoutingDecision",
     "ScalerParameters",

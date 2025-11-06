@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from adaptive_router.models.registry import RegistryModel
+from app.models import RegistryModel
 from app.registry.models import ModelRegistry
 
 

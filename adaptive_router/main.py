@@ -4,7 +4,6 @@ Provides HTTP API endpoints for intelligent model selection using cluster-based 
 """
 
 import logging
-import os
 import re
 import sys
 import time
@@ -21,18 +20,21 @@ from adaptive_router.core.router import ModelRouter
 from adaptive_router.models.api import (
     ModelSelectionAPIRequest,
 )
-from adaptive_router.models.registry import (
+from app.models import (
     RegistryConnectionError,
     RegistryError,
     RegistryResponseError,
     RegistryModel,
+    RegistryClientConfig,
 )
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
 from app.registry import RegistryClient, ModelRegistry
-from app.utils import enhance_model_costs_with_fuzzy_keys, resolve_models
-from adaptive_router.models.registry import RegistryClientConfig
+from app.utils import (
+    enhance_model_costs_with_fuzzy_keys,
+    resolve_models,
+)
 
 
 env_file = Path(".env")

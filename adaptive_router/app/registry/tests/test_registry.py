@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from adaptive_router.models.registry import (
+from app.models import (
     RegistryModel,
     RegistryError,
     RegistryClientConfig,

@@ -33,7 +33,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adaptive_router import ModelRouter, ModelSelectionRequest
-from adaptive_router.models.registry import RegistryModel
+from app.models import RegistryModel
 
 console = Console()
 
