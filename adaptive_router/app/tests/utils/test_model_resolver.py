@@ -144,3 +144,37 @@ class TestResolveModels:
 
         with pytest.raises(ValueError, match="invalid/missing pricing"):
             resolve_models(["openai/gpt-4"], models)
+
+    def test_resolves_models_with_variants(self):
+        """Test that resolve_models works with model variants (e.g., :free suffix)."""
+        models = [
+            RegistryModel.model_validate(
+                {
+                    "provider": "google",
+                    "model_name": "gemini-2.0-flash-exp:free",
+                    "pricing": {"prompt_cost": "0.0", "completion_cost": "0.0"},
+                }
+            ),
+            RegistryModel.model_validate(
+                {
+                    "provider": "google",
+                    "model_name": "gemini-2.0-flash-001",
+                    "pricing": {
+                        "prompt_cost": "0.000015",
+                        "completion_cost": "0.00012",
+                    },
+                }
+            ),
+        ]
+
+        # Test exact match with variant
+        result = resolve_models(["google/gemini-2.0-flash-exp:free"], models)
+        assert len(result) == 1
+        assert result[0].provider == "google"
+        assert result[0].model_name == "gemini-2.0-flash-exp:free"
+
+        # Test exact match without variant
+        result = resolve_models(["google/gemini-2.0-flash-001"], models)
+        assert len(result) == 1
+        assert result[0].provider == "google"
+        assert result[0].model_name == "gemini-2.0-flash-001"
