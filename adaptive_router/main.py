@@ -3,6 +3,7 @@
 Provides HTTP API endpoints for intelligent model selection using cluster-based routing.
 """
 
+import asyncio
 import logging
 import re
 import sys
@@ -32,6 +33,7 @@ from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
 from app.registry import RegistryClient, ModelRegistry
+from app.registry.client import AsyncRegistryClient
 from app.utils import (
     resolve_models,
 )
@@ -73,6 +75,30 @@ def build_registry_client(
     http_client = httpx.Client(timeout=settings.model_registry_timeout)
 
     return RegistryClient(config, http_client), config
+
+
+def build_async_registry_client(
+    settings: AppSettings,
+) -> tuple[AsyncRegistryClient, RegistryClientConfig]:
+    """Build AsyncRegistryClient with configuration and async HTTP client.
+
+    Args:
+        settings: Application settings containing registry configuration
+
+    Returns:
+        Tuple of (AsyncRegistryClient, RegistryClientConfig)
+    """
+    from app.registry.client import AsyncRegistryClient
+
+    config = RegistryClientConfig(
+        base_url=settings.model_registry_base_url,
+        timeout=settings.model_registry_timeout,
+    )
+
+    # Create httpx.AsyncClient with timeout configuration
+    http_client = httpx.AsyncClient(timeout=settings.model_registry_timeout)
+
+    return AsyncRegistryClient(config, http_client), config
 
 
 def load_models_from_registry(settings: AppSettings) -> list[Model]:
@@ -134,6 +160,119 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
     return router_models
 
 
+def extract_model_ids_from_profile(profile) -> list[str]:
+    """Extract model IDs from a RouterProfile.
+
+    Args:
+        profile: RouterProfile object with llm_profiles
+
+    Returns:
+        List of model IDs (e.g., ["openai/gpt-4", "anthropic/claude-3"])
+    """
+    return list(profile.llm_profiles.keys())
+
+
+async def load_models_for_profile_async(
+    settings: AppSettings, model_ids: list[str]
+) -> list[Model]:
+    """Load specific models from registry asynchronously.
+
+    Args:
+        settings: Application settings containing registry configuration
+        model_ids: List of model IDs to fetch (format: "provider/model_name")
+
+    Returns:
+        List of Model objects with cost information
+
+    Raises:
+        ValueError: If registry health check fails or fetch fails
+    """
+    client, client_config = build_async_registry_client(settings)
+    logger.info(
+        "Loading %d models from registry at %s", len(model_ids), client_config.base_url
+    )
+
+    try:
+        await client.health_check()
+    except (RegistryConnectionError, RegistryResponseError) as err:
+        raise ValueError(f"Model registry health check failed: {err}") from err
+
+    async def fetch_model(model_id: str) -> Model | None:
+        """Fetch a single model from registry."""
+        try:
+            provider, model_name = model_id.split("/", 1)
+        except ValueError:
+            logger.warning("Invalid model ID format: %s", model_id)
+            return None
+
+        try:
+            reg_model = await client.get_by_provider_and_name(provider, model_name)
+            if reg_model is None:
+                logger.warning("Model %s not found in registry", model_id)
+                return None
+
+            # Convert registry model to router model
+            router_model = _registry_model_to_model(reg_model)
+            if router_model is None:
+                logger.warning("Model %s has invalid/missing pricing", model_id)
+                return None
+
+            return router_model
+
+        except RegistryError as err:
+            logger.warning("Failed to fetch model %s: %s", model_id, err)
+            return None
+
+    # Fetch all models concurrently
+    tasks = [fetch_model(model_id) for model_id in model_ids]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    router_models = []
+    for model_id, result in zip(model_ids, results):
+        if isinstance(result, Exception):
+            logger.warning("Exception fetching model %s: %s", model_id, result)
+            continue
+        if result is not None:
+            router_models.append(result)
+
+    logger.info(
+        "Loaded %d/%d models from registry",
+        len(router_models),
+        len(model_ids),
+    )
+
+    return router_models
+
+
+def load_models_for_profile(settings: AppSettings, profile) -> list[Model]:
+    """Load models needed for a specific profile.
+
+    Args:
+        settings: Application settings containing registry configuration
+        profile: RouterProfile object
+
+    Returns:
+        List of Model objects with cost information
+    """
+    model_ids = extract_model_ids_from_profile(profile)
+    if not model_ids:
+        raise ValueError("Profile contains no model IDs")
+
+    # Run the async function in a new event loop
+    try:
+        return asyncio.run(load_models_for_profile_async(settings, model_ids))
+    except RuntimeError:
+        # If we're already in an event loop, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(
+                load_models_for_profile_async(settings, model_ids)
+            )
+        finally:
+            loop.close()
+
+
 # Inlined from model_router_factory.py
 def create_model_router(settings: AppSettings) -> ModelRouter:
     """Create ModelRouter with MinIO and ModelRegistry integration.
@@ -149,8 +288,6 @@ def create_model_router(settings: AppSettings) -> ModelRouter:
     """
     logger.info("Creating ModelRouter...")
 
-    models = load_models_from_registry(settings)
-
     from adaptive_router.models.storage import MinIOSettings
 
     minio_settings = MinIOSettings(
@@ -164,8 +301,18 @@ def create_model_router(settings: AppSettings) -> ModelRouter:
         read_timeout=int(settings.s3_read_timeout),
     )
 
-    router = ModelRouter.from_minio(
-        settings=minio_settings,
+    # Load profile first to determine which models we need
+    from adaptive_router.loaders.minio import MinIOProfileLoader
+
+    loader = MinIOProfileLoader.from_settings(minio_settings)
+    profile = loader.load_profile()
+
+    # Load only the models referenced in the profile
+    models = load_models_for_profile(settings, profile)
+
+    # Create router using the from_profile method
+    router = ModelRouter.from_profile(
+        profile=profile,
         models=models,
     )
 
@@ -392,8 +539,8 @@ def create_app() -> FastAPI:
         # Check registry health
         registry_start = time.perf_counter()
         try:
-            client, _ = build_registry_client(settings)
-            client.health_check()
+            client, _ = build_async_registry_client(settings)
+            await client.health_check()
             registry_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
                 message="Registry is accessible",
@@ -525,7 +672,16 @@ def create_app() -> FastAPI:
 
             # Transform library response to API response with full RegistryModel data
             selected_model_id = response.model_id
-            selected_registry_model = app_state.registry.get(selected_model_id)
+
+            # Use async registry client for lookups
+            async_client, _ = build_async_registry_client(settings)
+            try:
+                provider, model_name = selected_model_id.split("/", 1)
+                selected_registry_model = await async_client.get_by_provider_and_name(
+                    provider, model_name
+                )
+            except (ValueError, RegistryError):
+                selected_registry_model = None
 
             if selected_registry_model is None:
                 logger.warning(
@@ -542,7 +698,13 @@ def create_app() -> FastAPI:
             alternative_registry_models = []
             for alt in response.alternatives:
                 alt_model_id = alt.model_id
-                alt_registry_model = app_state.registry.get(alt_model_id)
+                try:
+                    provider, model_name = alt_model_id.split("/", 1)
+                    alt_registry_model = await async_client.get_by_provider_and_name(
+                        provider, model_name
+                    )
+                except (ValueError, RegistryError):
+                    alt_registry_model = None
 
                 if alt_registry_model is None:
                     logger.warning(

@@ -177,3 +177,128 @@ class RegistryClient:
         base = self._config.base_url.rstrip("/")
         suffix = path if path.startswith("/") else f"/{path}"
         return f"{base}{suffix}"
+
+
+class AsyncRegistryClient:
+    """Async HTTP client for the Adaptive model registry service.
+
+    Uses dependency injection for httpx.AsyncClient to enable connection pooling
+    and better testability.
+    """
+
+    def __init__(self, config: RegistryClientConfig, client: httpx.AsyncClient) -> None:
+        """Initialize async registry client.
+
+        Args:
+            config: Registry client configuration
+            client: Async HTTP client for making requests (injected dependency)
+        """
+        self._config = config
+        self._client = client
+
+    async def health_check(self) -> None:
+        """Raise if the registry health check fails."""
+        await self._request("GET", "/healthz")
+
+    async def get_by_provider_and_name(
+        self, provider: str, name: str
+    ) -> RegistryModel | None:
+        """Get model by provider and model name.
+
+        Args:
+            provider: Provider name
+            name: Model name
+
+        Returns:
+            RegistryModel if found, None otherwise
+
+        Raises:
+            ValueError: If provider or name is empty
+            RegistryConnectionError: If registry cannot be reached
+            RegistryResponseError: If registry returns invalid response
+        """
+        # Strip whitespace from inputs
+        provider = provider.strip() if provider else ""
+        name = name.strip() if name else ""
+
+        # Validate after stripping
+        if not provider:
+            raise ValueError("provider must be provided")
+        if not name:
+            raise ValueError("name must be provided")
+
+        return await self._get_model(f"/models/{provider}/{name}")
+
+    async def _get_model(self, path: str) -> RegistryModel | None:
+        """Get a single model from the registry.
+
+        Args:
+            path: API path to fetch
+
+        Returns:
+            RegistryModel if found, None if not found
+
+        Raises:
+            RegistryConnectionError: If registry cannot be reached
+            RegistryResponseError: If registry returns invalid response
+        """
+        resp = await self._request("GET", path)
+        if resp.status_code == httpx.codes.NOT_FOUND:
+            return None
+
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise RegistryResponseError(str(exc)) from exc
+
+        return RegistryModel.model_validate(resp.json())
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Dict[str, Any] | None = None,
+    ) -> httpx.Response:
+        """Make HTTP request to registry.
+
+        Args:
+            method: HTTP method
+            path: API path
+            params: Optional query parameters
+
+        Returns:
+            HTTP response
+
+        Raises:
+            RegistryConnectionError: If request fails or times out
+            RegistryResponseError: If registry returns error status
+        """
+        url = self._build_url(path)
+        headers = self._config.normalized_headers()
+
+        try:
+            response = await self._client.request(
+                method,
+                url,
+                params=params,
+                headers=headers,
+            )
+        except httpx.TimeoutException as exc:
+            raise RegistryConnectionError("registry request timed out") from exc
+        except httpx.RequestError as exc:
+            raise RegistryConnectionError(f"registry request failed: {exc!s}") from exc
+
+        if response.status_code >= 400:
+            if response.status_code == httpx.codes.NOT_FOUND:
+                return response
+            raise RegistryResponseError(
+                f"registry returned {response.status_code}: {response.text}"
+            )
+
+        return response
+
+    def _build_url(self, path: str) -> str:
+        base = self._config.base_url.rstrip("/")
+        suffix = path if path.startswith("/") else f"/{path}"
+        return f"{base}{suffix}"

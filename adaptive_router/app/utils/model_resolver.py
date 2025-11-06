@@ -34,15 +34,23 @@ def _registry_model_to_model(
 
     if registry_model.pricing:
         try:
-            prompt_cost = float(registry_model.pricing.prompt_cost or 0)
-            completion_cost = float(registry_model.pricing.completion_cost or 0)
+            # Handle None pricing values - they should be treated as missing
+            if (
+                registry_model.pricing.prompt_cost is None
+                or registry_model.pricing.completion_cost is None
+            ):
+                raise ValueError("Pricing values cannot be None")
 
-            # Check for invalid (negative or zero) pricing values
+            prompt_cost = float(registry_model.pricing.prompt_cost)
+            completion_cost = float(registry_model.pricing.completion_cost)
+
+            # Check for invalid (negative) pricing values
             # Registry uses negative values like -1000000.0 as sentinel for "no pricing"
-            if prompt_cost <= 0 or completion_cost <= 0:
+            # Zero costs are now accepted as valid
+            if prompt_cost < 0 or completion_cost < 0:
                 logger.warning(
                     "Skipping model '%s' with invalid pricing: "
-                    "prompt_cost=%s, completion_cost=%s (must be positive)",
+                    "prompt_cost=%s, completion_cost=%s (must be non-negative)",
                     registry_model.unique_id(),
                     prompt_cost,
                     completion_cost,
