@@ -3,7 +3,6 @@
 Provides HTTP API endpoints for intelligent model selection using cluster-based routing.
 """
 
-import asyncio
 import logging
 import re
 import sys
@@ -175,7 +174,7 @@ def extract_model_ids_from_profile(profile) -> list[str]:
 async def load_models_for_profile_async(
     settings: AppSettings, model_ids: list[str]
 ) -> list[Model]:
-    """Load specific models from registry asynchronously.
+    """Load specific models from registry asynchronously with fuzzy matching.
 
     Args:
         settings: Application settings containing registry configuration
@@ -197,48 +196,29 @@ async def load_models_for_profile_async(
     except (RegistryConnectionError, RegistryResponseError) as err:
         raise ValueError(f"Model registry health check failed: {err}") from err
 
-    async def fetch_model(model_id: str) -> Model | None:
-        """Fetch a single model from registry."""
-        try:
-            provider, model_name = model_id.split("/", 1)
-        except ValueError:
-            logger.warning("Invalid model ID format: %s", model_id)
-            return None
+    # List all models once for fuzzy matching
+    try:
+        all_registry_models = await client.list_models()
+        logger.info(
+            "Retrieved %d total models from registry for fuzzy matching",
+            len(all_registry_models),
+        )
+    except (RegistryConnectionError, RegistryResponseError) as err:
+        raise ValueError(f"Failed to list models from registry: {err}") from err
 
-        try:
-            reg_model = await client.get_by_provider_and_name(provider, model_name)
-            if reg_model is None:
-                logger.warning("Model %s not found in registry", model_id)
-                return None
-
-            # Convert registry model to router model
-            router_model = _registry_model_to_model(reg_model)
-            if router_model is None:
-                logger.warning("Model %s has invalid/missing pricing", model_id)
-                return None
-
-            return router_model
-
-        except Exception as err:
-            logger.warning("Failed to fetch model %s: %s", model_id, err)
-            return None
-
-    # Fetch all models concurrently
-    tasks = [fetch_model(model_id) for model_id in model_ids]
-    results = await asyncio.gather(*tasks)
-
-    router_models = []
-    for result in results:
-        if result is not None:
-            router_models.append(result)
-
-    logger.info(
-        "Loaded %d/%d models from registry",
-        len(router_models),
-        len(model_ids),
-    )
-
-    return router_models
+    # Use fuzzy matching to resolve model IDs
+    try:
+        router_models = resolve_models(model_ids, all_registry_models)
+        logger.info(
+            "Loaded %d/%d models from registry",
+            len(router_models),
+            len(model_ids),
+        )
+        return router_models
+    except ValueError as err:
+        # Log the error and return partial results if possible
+        logger.error("Error resolving models: %s", err)
+        raise
 
 
 # Inlined from model_router_factory.py

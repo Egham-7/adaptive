@@ -83,6 +83,8 @@ def normalize_model_id(model_id: str) -> list[str]:
             seen.add(variant)
             variants.append(variant)
 
+    logger.debug(f"Generated {len(variants)} variants for '{model_id}': {variants}")
+
     # Add provider alias variants (e.g., google <-> gemini)
     provider_alias_variants: list[str] = []
     for variant in variants:
