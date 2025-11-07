@@ -241,37 +241,8 @@ async def load_models_for_profile_async(
     return router_models
 
 
-def load_models_for_profile(settings: AppSettings, profile) -> list[Model]:
-    """Load models needed for a specific profile.
-
-    Args:
-        settings: Application settings containing registry configuration
-        profile: RouterProfile object
-
-    Returns:
-        List of Model objects with cost information
-    """
-    model_ids = extract_model_ids_from_profile(profile)
-    if not model_ids:
-        raise ValueError("Profile contains no model IDs")
-
-    # Run the async function in a new event loop
-    try:
-        return asyncio.run(load_models_for_profile_async(settings, model_ids))
-    except RuntimeError:
-        # If we're already in an event loop, create a new one
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            return loop.run_until_complete(
-                load_models_for_profile_async(settings, model_ids)
-            )
-        finally:
-            loop.close()
-
-
 # Inlined from model_router_factory.py
-def create_model_router(settings: AppSettings) -> ModelRouter:
+async def create_model_router(settings: AppSettings) -> ModelRouter:
     """Create ModelRouter with MinIO and ModelRegistry integration.
 
     Args:
@@ -304,8 +275,13 @@ def create_model_router(settings: AppSettings) -> ModelRouter:
     loader = MinIOProfileLoader.from_settings(minio_settings)
     profile = loader.load_profile()
 
+    # Extract model IDs from the profile
+    model_ids = extract_model_ids_from_profile(profile)
+    if not model_ids:
+        raise ValueError("Profile contains no model IDs")
+
     # Load only the models referenced in the profile
-    models = load_models_for_profile(settings, profile)
+    models = await load_models_for_profile_async(settings, model_ids)
 
     # Create router using the from_profile method
     router = ModelRouter.from_profile(
@@ -453,7 +429,7 @@ def create_app() -> FastAPI:
 
             # Initialize ModelRouter
             logger.info("Initializing ModelRouter...")
-            app_state.router = create_model_router(app_state.settings)
+            app_state.router = await create_model_router(app_state.settings)
             logger.info("ModelRouter initialized successfully")
 
             # Initialize ModelResolverService
@@ -503,12 +479,12 @@ def create_app() -> FastAPI:
             app_state.settings = AppSettings()
         return app_state.settings
 
-    def get_router() -> ModelRouter:
+    async def get_router() -> ModelRouter:
         """Get ModelRouter dependency."""
         if app_state.router is None:
             settings = get_settings()
             logger.info("Lazy-initializing ModelRouter...")
-            app_state.router = create_model_router(settings)
+            app_state.router = await create_model_router(settings)
             logger.info("ModelRouter initialized successfully")
         return app_state.router
 
