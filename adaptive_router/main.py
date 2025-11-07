@@ -4,10 +4,10 @@ Provides HTTP API endpoints for intelligent model selection using cluster-based 
 """
 
 import logging
-import re
 import sys
 import time
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, AsyncIterator
 import httpx
@@ -25,13 +25,13 @@ from app.models import (
     RegistryConnectionError,
     RegistryError,
     RegistryResponseError,
-    RegistryModel,
     RegistryClientConfig,
 )
+from app.registry import ModelRegistry
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
-from app.registry import RegistryClient, ModelRegistry
+
 from app.registry.client import AsyncRegistryClient
 from app.utils import (
     resolve_models,
@@ -52,113 +52,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Inlined from model_registry.py
-def build_registry_client(
-    settings: AppSettings,
-) -> tuple[RegistryClient, RegistryClientConfig]:
-    """Build RegistryClient with configuration and HTTP client.
-
-    Args:
-        settings: Application settings containing registry configuration
-
-    Returns:
-        Tuple of (RegistryClient, RegistryClientConfig)
-    """
-
-    config = RegistryClientConfig(
-        base_url=settings.model_registry_base_url,
-        timeout=settings.model_registry_timeout,
-    )
-
-    # Create httpx.Client with timeout configuration
-    http_client = httpx.Client(timeout=settings.model_registry_timeout)
-
-    return RegistryClient(config, http_client), config
-
-
-def build_async_registry_client(
-    settings: AppSettings,
-) -> tuple[AsyncRegistryClient, RegistryClientConfig]:
-    """Build AsyncRegistryClient with configuration and async HTTP client.
-
-    Args:
-        settings: Application settings containing registry configuration
-
-    Returns:
-        Tuple of (AsyncRegistryClient, RegistryClientConfig)
-    """
-    from app.registry.client import AsyncRegistryClient
-
-    config = RegistryClientConfig(
-        base_url=settings.model_registry_base_url,
-        timeout=settings.model_registry_timeout,
-    )
-
-    # Create httpx.AsyncClient with timeout configuration
-    http_client = httpx.AsyncClient(timeout=settings.model_registry_timeout)
-
-    return AsyncRegistryClient(config, http_client), config
-
-
-def load_models_from_registry(settings: AppSettings) -> list[Model]:
-    """Load typed Model objects from the Adaptive model registry.
-
-    Args:
-        settings: Application settings containing registry configuration
-
-    Returns:
-        List of Model objects with cost information
-
-    Raises:
-        ValueError: If registry health check fails, no models found, or fetch fails
-    """
-    client, client_config = build_registry_client(settings)
-    logger.info("Loading model costs from registry at %s", client_config.base_url)
-
-    try:
-        client.health_check()
-    except (RegistryConnectionError, RegistryResponseError) as err:
-        raise ValueError(f"Model registry health check failed: {err}") from err
-
-    try:
-        models = client.list_models()
-    except RegistryError as err:
-        raise ValueError(f"Failed to fetch models from registry: {err}") from err
-
-    if not models:
-        raise ValueError("Model registry returned no models")
-
-    provider_stats: dict[str, int] = {}
-    router_models: list[Model] = []
-
-    for reg_model in models:
-        provider = (reg_model.provider or "").strip().lower()
-        if provider:
-            provider_stats[provider] = provider_stats.get(provider, 0) + 1
-
-        try:
-            reg_model.unique_id()
-        except RegistryError as err:
-            logger.warning("Skipping registry model without identifier: %s", err)
-            continue
-
-        # Convert registry model to router model (skip on pricing errors)
-        router_model = _registry_model_to_model(reg_model)
-        if router_model is None:
-            # Model was skipped due to missing/invalid pricing (warning already logged)
-            continue
-
-        router_models.append(router_model)
-
-    logger.info(
-        "Loaded %d models across %d providers from registry",
-        len(router_models),
-        len(provider_stats),
-    )
-
-    return router_models
-
-
 def extract_model_ids_from_profile(profile) -> list[str]:
     """Extract model IDs from a RouterProfile.
 
@@ -174,7 +67,7 @@ def extract_model_ids_from_profile(profile) -> list[str]:
 async def load_models_for_profile_async(
     settings: AppSettings, model_ids: list[str]
 ) -> list[Model]:
-    """Load specific models from registry asynchronously with fuzzy matching.
+    """Load specific models from registry asynchronously with exact matching.
 
     Args:
         settings: Application settings containing registry configuration
@@ -186,39 +79,51 @@ async def load_models_for_profile_async(
     Raises:
         ValueError: If registry health check fails or fetch fails
     """
-    client, client_config = build_async_registry_client(settings)
-    logger.info(
-        "Loading %d models from registry at %s", len(model_ids), client_config.base_url
+    config = RegistryClientConfig(
+        base_url=settings.model_registry_base_url,
+        timeout=settings.model_registry_timeout,
     )
-
-    try:
-        await client.health_check()
-    except (RegistryConnectionError, RegistryResponseError) as err:
-        raise ValueError(f"Model registry health check failed: {err}") from err
-
-    # List all models once for fuzzy matching
-    try:
-        all_registry_models = await client.list_models()
+    async with httpx.AsyncClient(
+        timeout=settings.model_registry_timeout
+    ) as http_client:
+        client = AsyncRegistryClient(config, http_client)
         logger.info(
-            "Retrieved %d total models from registry for fuzzy matching",
-            len(all_registry_models),
+            "Loading %d models from registry at %s", len(model_ids), config.base_url
         )
-    except (RegistryConnectionError, RegistryResponseError) as err:
-        raise ValueError(f"Failed to list models from registry: {err}") from err
 
-    # Use fuzzy matching to resolve model IDs
-    try:
-        router_models = resolve_models(model_ids, all_registry_models)
+        try:
+            await client.health_check()
+        except (RegistryConnectionError, RegistryResponseError) as err:
+            raise ValueError(f"Model registry health check failed: {err}") from err
+
+        # Load only the specific models requested
+        router_models = []
+        for model_id in model_ids:
+            try:
+                provider, model_name = model_id.split("/", 1)
+                registry_model = await client.get_by_provider_and_name(
+                    provider, model_name
+                )
+                if registry_model is None:
+                    logger.warning("Model %s not found in registry", model_id)
+                    continue
+
+                model = _registry_model_to_model(registry_model)
+                if model is not None:
+                    router_models.append(model)
+                else:
+                    logger.warning("Model %s has invalid/missing pricing", model_id)
+
+            except (ValueError, RegistryError) as err:
+                logger.warning("Failed to load model %s: %s", model_id, err)
+                continue
+
         logger.info(
             "Loaded %d/%d models from registry",
             len(router_models),
             len(model_ids),
         )
         return router_models
-    except ValueError as err:
-        # Log the error and return partial results if possible
-        logger.error("Error resolving models: %s", err)
-        raise
 
 
 # Inlined from model_router_factory.py
@@ -274,107 +179,6 @@ async def create_model_router(settings: AppSettings) -> ModelRouter:
     return router
 
 
-# Inlined from model_fuzzy_matching.py
-def normalize_model_id(model_id: str) -> list[str]:
-    """Generate normalized variants of a model ID for fuzzy matching.
-
-    Args:
-        model_id: Original model ID (e.g., "anthropic:claude-sonnet-4-5-20250929")
-
-    Returns:
-        List of normalized variants for matching, ordered by specificity:
-        1. Original ID
-        2. Without date suffixes (e.g., -20250929, -2024-04-09)
-        3. Without version suffixes (e.g., -latest, -preview, -v1)
-        4. With dots instead of hyphens in version numbers
-
-    Examples:
-         >>> normalize_model_id("anthropic/claude-sonnet-4-5-20250929")
-        [
-            "anthropic:claude-sonnet-4-5-20250929",
-            "anthropic:claude-sonnet-4-5",
-            "anthropic:claude-sonnet-4.5"
-        ]
-
-         >>> normalize_model_id("openai/gpt-4-turbo-2024-04-09")
-        [
-            "openai:gpt-4-turbo-2024-04-09",
-            "openai:gpt-4-turbo",
-            "openai:gpt-4-turbo"
-        ]
-    """
-    # Apply transformations sequentially
-    transformations = [
-        lambda x: x,  # Original
-        lambda x: re.sub(r"-\d{8}$", "", x),  # Remove YYYYMMDD
-        lambda x: re.sub(r"-\d{4}-\d{2}-\d{2}$", "", x),  # Remove YYYY-MM-DD
-        lambda x: re.sub(
-            r"-(latest|preview|alpha|beta|v\d+)$", "", x
-        ),  # Remove version suffixes
-        lambda x: re.sub(
-            r"(\w+)-(\d+)-(\d+)", r"\1-\2.\3", x
-        ),  # Convert hyphens to dots in versions (4-5 -> 4.5)
-        lambda x: re.sub(
-            r"(\w+)-(\d+)\.(\d+)", r"\1-\2-\3", x
-        ),  # Convert dots to hyphens in versions (4.5 -> 4-5)
-    ]
-
-    # Apply all transformations and deduplicate while preserving order
-    seen: set[str] = set()
-    variants: list[str] = []
-
-    for transform in transformations:
-        variant = transform(model_id)
-        if variant not in seen:
-            seen.add(variant)
-            variants.append(variant)
-
-    return variants
-
-
-def calculate_similarity(a: str, b: str) -> float:
-    """Calculate similarity score between two strings using SequenceMatcher.
-
-    Args:
-        a: First string
-        b: Second string
-
-    Returns:
-        Similarity score between 0.0 and 1.0, where 1.0 is identical
-    """
-    from difflib import SequenceMatcher
-
-    return SequenceMatcher(None, a.lower(), b.lower()).ratio()
-
-
-def find_best_match(
-    target_id: str,
-    available_ids: list[str],
-    threshold: float = 0.8,
-) -> tuple[str | None, float]:
-    """Find the best matching model ID from available IDs.
-
-    Args:
-        target_id: Target model ID to match
-        available_ids: List of available model IDs
-        threshold: Minimum similarity threshold (0.0-1.0)
-
-    Returns:
-        Tuple of (best_match_id, similarity_score) or (None, 0.0) if no match
-    """
-    if not available_ids:
-        return None, 0.0
-
-    # Find ID with highest similarity score
-    similarities = [
-        (available_id, calculate_similarity(target_id, available_id))
-        for available_id in available_ids
-    ]
-    best_match, best_score = max(similarities, key=lambda x: x[1])
-
-    return (best_match, best_score) if best_score >= threshold else (None, 0.0)
-
-
 class AppState:
     """Application state container."""
 
@@ -383,6 +187,7 @@ class AppState:
         self.settings: AppSettings | None = None
         self.router: ModelRouter | None = None
         self.registry: ModelRegistry | None = None
+        self.registry_client: AsyncRegistryClient | None = None
 
 
 def create_app() -> FastAPI:
@@ -407,15 +212,45 @@ def create_app() -> FastAPI:
                 app_state.settings.port,
             )
 
-            # Initialize ModelRouter
+            # Load profile first to determine which models we need
+            logger.info("Loading router profile...")
+            from adaptive_router.models.storage import MinIOSettings
+
+            minio_settings = MinIOSettings(
+                endpoint_url=app_state.settings.minio_private_endpoint,
+                root_user=app_state.settings.minio_root_user,
+                root_password=app_state.settings.minio_root_password,
+                bucket_name=app_state.settings.s3_bucket_name,
+                region=app_state.settings.s3_region,
+                profile_key=app_state.settings.s3_profile_key,
+                connect_timeout=int(app_state.settings.s3_connect_timeout),
+                read_timeout=int(app_state.settings.s3_read_timeout),
+            )
+            from adaptive_router.loaders.minio import MinIOProfileLoader
+
+            loader = MinIOProfileLoader.from_settings(minio_settings)
+            profile = loader.load_profile()
+            profile_model_ids = extract_model_ids_from_profile(profile)
+            logger.info("Loaded profile with %d model IDs", len(profile_model_ids))
+
+            # Initialize ModelRouter with profile models
             logger.info("Initializing ModelRouter...")
             app_state.router = await create_model_router(app_state.settings)
             logger.info("ModelRouter initialized successfully")
 
-            # Initialize ModelResolverService
+            # Initialize ModelResolverService with only profile models
             logger.info("Initializing ModelResolverService...")
-            registry_client, _ = build_registry_client(app_state.settings)
-            app_state.registry = ModelRegistry(registry_client)
+            config = RegistryClientConfig(
+                base_url=app_state.settings.model_registry_base_url,
+                timeout=app_state.settings.model_registry_timeout,
+            )
+            registry_client = AsyncRegistryClient(
+                config,
+                httpx.AsyncClient(timeout=app_state.settings.model_registry_timeout),
+            )
+            app_state.registry_client = registry_client
+            models = await registry_client.list_models()
+            app_state.registry = ModelRegistry(registry_client, models)
             logger.info("ModelResolverService initialized successfully")
 
             logger.info("FastAPI application started successfully")
@@ -427,6 +262,8 @@ def create_app() -> FastAPI:
 
         # Cleanup on shutdown
         logger.info("Shutting down Adaptive Router...")
+        if app_state.registry_client is not None:
+            await app_state.registry_client._client.aclose()
 
     app = FastAPI(
         title="Adaptive Router",
@@ -453,11 +290,30 @@ def create_app() -> FastAPI:
     configure_cors()
 
     # Dependencies
+    @lru_cache()
     def get_settings() -> AppSettings:
         """Get application settings dependency."""
         if app_state.settings is None:
             app_state.settings = AppSettings()
         return app_state.settings
+
+    async def get_registry_client() -> AsyncRegistryClient:
+        """Get AsyncRegistryClient dependency."""
+        if app_state.registry_client is None:
+            settings = get_settings()
+            config = RegistryClientConfig(
+                base_url=settings.model_registry_base_url,
+                timeout=settings.model_registry_timeout,
+            )
+            http_client = httpx.AsyncClient(timeout=settings.model_registry_timeout)
+            app_state.registry_client = AsyncRegistryClient(config, http_client)
+        return app_state.registry_client
+
+    def get_registry() -> ModelRegistry:
+        """Get ModelRegistry dependency."""
+        if app_state.registry is None:
+            raise RuntimeError("Registry not initialized")
+        return app_state.registry
 
     async def get_router() -> ModelRouter:
         """Get ModelRouter dependency."""
@@ -480,6 +336,7 @@ def create_app() -> FastAPI:
     )
     async def health_check(
         settings: Annotated[AppSettings, Depends(get_settings)],
+        registry_client: Annotated[AsyncRegistryClient, Depends(get_registry_client)],
     ) -> HealthCheckResponse:
         """Comprehensive health check including registry connectivity.
 
@@ -492,8 +349,7 @@ def create_app() -> FastAPI:
         # Check registry health
         registry_start = time.perf_counter()
         try:
-            client, _ = build_async_registry_client(settings)
-            await client.health_check()
+            await registry_client.health_check()
             registry_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
                 message="Registry is accessible",
@@ -557,6 +413,8 @@ def create_app() -> FastAPI:
         request: ModelSelectionAPIRequest,
         http_request: Request,
         router: Annotated[ModelRouter, Depends(get_router)],
+        registry: Annotated[ModelRegistry, Depends(get_registry)],
+        registry_client: Annotated[AsyncRegistryClient, Depends(get_registry_client)],
         settings: Annotated[AppSettings, Depends(get_settings)],
     ) -> ModelSelectionAPIResponse:
         """Select optimal model based on prompt analysis.
@@ -575,15 +433,9 @@ def create_app() -> FastAPI:
         start_time = time.perf_counter()
 
         try:
-            if app_state.registry is None:
-                raise HTTPException(
-                    detail="Model registry not initialized",
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
-
             # Resolve model specifications to RegistryModel objects
             resolved_models = None
-            all_models = app_state.registry.list_models()
+            all_models = registry.list_models()
             if request.models:
                 try:
                     resolved_models = resolve_models(request.models, all_models)
@@ -626,12 +478,11 @@ def create_app() -> FastAPI:
             # Transform library response to API response with full RegistryModel data
             selected_model_id = response.model_id
 
-            # Use async registry client for lookups
-            async_client, _ = build_async_registry_client(settings)
+            # Use injected async registry client for lookups
             try:
                 provider, model_name = selected_model_id.split("/", 1)
-                selected_registry_model = await async_client.get_by_provider_and_name(
-                    provider, model_name
+                selected_registry_model = (
+                    await registry_client.get_by_provider_and_name(provider, model_name)
                 )
             except (ValueError, RegistryError):
                 selected_registry_model = None
@@ -640,12 +491,7 @@ def create_app() -> FastAPI:
                 logger.warning(
                     f"Selected model {selected_model_id} not found in registry, using minimal data"
                 )
-                # Fallback: create minimal RegistryModel by parsing model_id
-                parts = selected_model_id.split("/", 1)
-                selected_registry_model = RegistryModel(
-                    provider=parts[0] if len(parts) == 2 else "unknown",
-                    model_name=parts[1] if len(parts) == 2 else selected_model_id,
-                )
+                raise ValueError("Selected model not found in registry")
 
             # Lookup alternatives in registry
             alternative_registry_models = []
@@ -653,7 +499,7 @@ def create_app() -> FastAPI:
                 alt_model_id = alt.model_id
                 try:
                     provider, model_name = alt_model_id.split("/", 1)
-                    alt_registry_model = await async_client.get_by_provider_and_name(
+                    alt_registry_model = await registry_client.get_by_provider_and_name(
                         provider, model_name
                     )
                 except (ValueError, RegistryError):

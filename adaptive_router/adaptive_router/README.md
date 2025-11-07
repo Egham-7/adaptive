@@ -106,12 +106,13 @@ from adaptive_router.registry import (
     RegistryClientConfig,
 )
 
-client = RegistryClient(RegistryClientConfig(base_url="http://localhost:3000"))
-registry = ModelRegistry(client)
+client = AsyncRegistryClient(RegistryClientConfig(base_url="http://localhost:3000"))
+models = await client.list_models()
+registry = ModelRegistry(client, models)
 
-model = registry.get("openai:gpt-4")
+model = registry.get("openai/gpt-4")
 providers = registry.providers_for_model("gpt-4")
-high_context = registry.filter(min_context=120_000)
+all_models = registry.list_models()
 ```
 
 ## Models
