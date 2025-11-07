@@ -13,29 +13,55 @@ from collections import defaultdict
 from typing import Iterable, List
 
 from app.models import RegistryError, RegistryModel
-from app.registry.client import RegistryClient
+from app.registry.client import AsyncRegistryClient
 
 logger = logging.getLogger(__name__)
 
 
 class ModelRegistry:
-    """Simple cache facade around :class:`RegistryClient`."""
+    """Simple cache facade around :class:`AsyncRegistryClient`."""
 
-    def __init__(self, client: RegistryClient, *, auto_refresh: bool = True) -> None:
+    def __init__(
+        self, client: AsyncRegistryClient, *, auto_refresh: bool = True
+    ) -> None:
         self._client = client
         self._models_by_id: dict[str, RegistryModel] = {}
         self._models_by_name: dict[str, list[RegistryModel]] = {}
 
         if auto_refresh:
-            self.refresh()
+            # Note: auto_refresh is deprecated for async registry - use await refresh() instead
+            raise ValueError(
+                "ModelRegistry with auto_refresh=True is not supported for async client. Use await refresh() explicitly."
+            )
 
     # ------------------------------------------------------------------
     # Loading & caching helpers
-    def refresh(self) -> None:
-        """Fetch the latest models from the registry service and cache them."""
+    async def refresh(self, model_ids: list[str] | None = None) -> None:
+        """Fetch models from the registry service and cache them.
+
+        Args:
+            model_ids: Optional list of model IDs to fetch. If None, fetches all models.
+        """
 
         try:
-            registry_models = self._client.list_models()
+            if model_ids is None:
+                # Fetch all models
+                registry_models = await self._client.list_models()
+            else:
+                # Fetch only specific models
+                registry_models = []
+                for model_id in model_ids:
+                    try:
+                        provider, model_name = model_id.split("/", 1)
+                        model = await self._client.get_by_provider_and_name(
+                            provider, model_name
+                        )
+                        if model is not None:
+                            registry_models.append(model)
+                    except (ValueError, RegistryError) as exc:
+                        logger.warning("Failed to fetch model %s: %s", model_id, exc)
+                        continue
+
         except RegistryError as exc:
             logger.error(
                 "Failed to load models from registry",
@@ -136,7 +162,6 @@ class ModelRegistry:
         provider: str | None = None,
         model_name: str | None = None,
         min_context: int | None = None,
-        requires_function_calling: bool | None = None,
     ) -> list[RegistryModel]:
         """Filter cached models by common registry attributes.
 
@@ -159,43 +184,9 @@ class ModelRegistry:
             ):
                 continue
 
-            if requires_function_calling is True and not _supports_function_calling(
-                model
-            ):
-                continue
-            if requires_function_calling is False and _supports_function_calling(model):
-                continue
-
             filtered.append(model)
 
         return filtered
-
-
-def _supports_function_calling(model: RegistryModel) -> bool:
-    """Best-effort detection based on ``supported_parameters``."""
-
-    params = model.supported_parameters
-    if params is None:
-        return False
-
-    values: Iterable[str]
-    if isinstance(params, dict):
-        values = [str(item) for pair in params.items() for item in pair]
-    elif isinstance(params, (list, tuple, set)):
-        # Handle list of SupportedParameterModel objects
-        values = []
-        for item in params:
-            # If it's a SupportedParameterModel, extract parameter_name
-            if hasattr(item, "parameter_name"):
-                values.append(item.parameter_name)
-            else:
-                # Fallback to string conversion for backward compatibility
-                values.append(str(item))
-    else:
-        values = [str(params)]
-
-    supported_flags = {"tools", "functions", "function_calling", "tool_choice"}
-    return any(_normalise(value) in supported_flags for value in values)
 
 
 def _normalise(value: str | None) -> str:

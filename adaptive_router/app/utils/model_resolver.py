@@ -5,8 +5,6 @@ from typing import List, Optional
 
 from app.models import RegistryModel
 from adaptive_router.models.api import Model
-from adaptive_router.utils.model_parser import parse_model_spec
-from app.utils.fuzzy_matching import normalize_model_id
 
 logger = logging.getLogger(__name__)
 
@@ -89,12 +87,10 @@ def resolve_models(
     model_specs: List[str],
     registry_models: List[RegistryModel],
 ) -> List[Model]:
-    """Resolve a list of model specifications to Model objects.
-
-    Uses exact matching first, then falls back to fuzzy matching if no exact match is found.
+    """Resolve a list of model specifications to Model objects using exact matching.
 
     Args:
-        model_specs: List of model specifications in "provider/model_name" or "provider/model_name:variant" format
+        model_specs: List of model specifications in "provider/model_name" format
         registry_models: List of all available registry models
 
     Returns:
@@ -107,120 +103,48 @@ def resolve_models(
 
     for spec in model_specs:
         try:
-            provider, model_name, variant = parse_model_spec(spec)
+            provider, model_name = spec.split("/", 1)
         except ValueError as e:
-            raise ValueError(f"Invalid model specification '{spec}': {e}") from e
-
-        # Try exact matching first
-        try:
-            # Compare the full model spec (minus provider) against registry model_name
-            # This handles variants that are stored as part of the model_name in the registry
-            full_model_spec = spec.split("/", 1)[1]  # Everything after the first '/'
-            candidates = [
-                m
-                for m in registry_models
-                if (m.provider and provider and m.provider.lower() == provider.lower())
-                and (
-                    m.model_name
-                    and full_model_spec
-                    and m.model_name.lower() == full_model_spec.lower()
-                )
-            ]
-        except Exception as e:
             raise ValueError(
-                f"Failed to fetch model '{spec}' from registry: {e}"
+                f"Invalid model specification '{spec}': expected format 'provider/model_name'"
             ) from e
 
-        # If exact match found, use it
-        if candidates:
-            if len(candidates) > 1:
-                # If multiple models match, this is unexpected - the combination should be unique
-                raise ValueError(
-                    f"Multiple models found for '{spec}': "
-                    f"{[m.unique_id() for m in candidates]}"
-                )
-            model = _registry_model_to_model(candidates[0])
-            if model is None:
-                raise ValueError(
-                    f"Model '{spec}' found in registry but has invalid/missing pricing"
-                )
-            resolved_models.append(model)
-            continue
-
-        # No exact match - try fuzzy matching
-        logger.debug(f"No exact match for '{spec}', trying fuzzy matching...")
-
-        # Generate normalized variants of the requested spec
-        spec_variants = normalize_model_id(spec)
-        logger.debug(
-            f"Generated {len(spec_variants)} variants for '{spec}': {spec_variants}"
-        )
-
-        # Try to find a match using normalized variants
-        fuzzy_candidates = []
-        for variant in spec_variants:
-            try:
-                variant_provider, variant_model, variant_variant = parse_model_spec(
-                    variant
-                )
-            except ValueError:
-                continue
-
-            # Compare the full variant spec (minus provider) against registry model_name
-            full_variant_spec = variant.split("/", 1)[
-                1
-            ]  # Everything after the first '/'
-            matches = [
-                m
-                for m in registry_models
-                if (
-                    m.provider
-                    and variant_provider
-                    and m.provider.lower() == variant_provider.lower()
-                )
-                and (
-                    m.model_name
-                    and full_variant_spec
-                    and m.model_name.lower() == full_variant_spec.lower()
-                )
-            ]
-
-            if matches:
-                fuzzy_candidates.extend(matches)
-                # Found a match with this variant, stop searching
-                break
-
-        # If fuzzy matching found candidates, use the first one
-        if fuzzy_candidates:
-            matched_model = fuzzy_candidates[0]
-            logger.info(
-                f"Fuzzy match: '{spec}' resolved to '{matched_model.unique_id()}' "
-                f"(provider: {matched_model.provider}, model: {matched_model.model_name})"
-            )
-            model = _registry_model_to_model(matched_model)
-            if model is None:
-                raise ValueError(
-                    f"Model '{spec}' found in registry but has invalid/missing pricing"
-                )
-            resolved_models.append(model)
-            continue
-
-        # No match found at all - provide helpful error message
-        # Show available models from the same provider if any
-        provider_models = [
-            m.unique_id()
+        # Find exact match
+        candidates = [
+            m
             for m in registry_models
-            if m.provider and m.provider.lower() == provider.lower()
+            if (m.provider and m.provider.lower() == provider.lower())
+            and (m.model_name and m.model_name.lower() == model_name.lower())
         ]
 
-        error_msg = f"Model '{spec}' not found in registry"
-        if provider_models:
-            # Show up to 5 similar models as suggestions
-            suggestions = provider_models[:5]
-            error_msg += f". Available {provider} models: {', '.join(suggestions)}"
-            if len(provider_models) > 5:
-                error_msg += f" (and {len(provider_models) - 5} more)"
+        if not candidates:
+            # Show available models from the same provider if any
+            provider_models = [
+                m.unique_id()
+                for m in registry_models
+                if m.provider and m.provider.lower() == provider.lower()
+            ]
 
-        raise ValueError(error_msg)
+            error_msg = f"Model '{spec}' not found in registry"
+            if provider_models:
+                suggestions = provider_models[:5]
+                error_msg += f". Available {provider} models: {', '.join(suggestions)}"
+                if len(provider_models) > 5:
+                    error_msg += f" (and {len(provider_models) - 5} more)"
+
+            raise ValueError(error_msg)
+
+        if len(candidates) > 1:
+            raise ValueError(
+                f"Multiple models found for '{spec}': "
+                f"{[m.unique_id() for m in candidates]}"
+            )
+
+        model = _registry_model_to_model(candidates[0])
+        if model is None:
+            raise ValueError(
+                f"Model '{spec}' found in registry but has invalid/missing pricing"
+            )
+        resolved_models.append(model)
 
     return resolved_models
