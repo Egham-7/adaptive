@@ -46,14 +46,15 @@ def mock_client(registry_models: list[RegistryModel]) -> Mock:
 
 
 @pytest.fixture
-def model_registry(mock_client: Mock) -> ModelRegistry:
-    return ModelRegistry(mock_client)
+def model_registry(
+    mock_client: Mock, registry_models: list[RegistryModel]
+) -> ModelRegistry:
+    return ModelRegistry(mock_client, registry_models)
 
 
-def test_refresh_fetches_models(mock_client: Mock) -> None:
-    registry = ModelRegistry(mock_client)
-    mock_client.list_models.assert_called_once()
-    assert len(registry.list_models()) == 2
+def test_list_models(model_registry: ModelRegistry) -> None:
+    models = model_registry.list_models()
+    assert len(models) == 2
 
 
 def test_get_by_unique_id(model_registry: ModelRegistry) -> None:
@@ -72,26 +73,3 @@ def test_get_by_name(model_registry: ModelRegistry) -> None:
 def test_providers_for_model(model_registry: ModelRegistry) -> None:
     providers = model_registry.providers_for_model("claude-3-sonnet")
     assert providers == {"anthropic"}
-
-
-def test_filter_supports_function_calling(model_registry: ModelRegistry) -> None:
-    results = model_registry.filter(requires_function_calling=True)
-    assert len(results) == 1
-    assert results[0].provider == "openai"
-
-
-def test_refresh_replaces_cache(mock_client: Mock) -> None:
-    registry = ModelRegistry(mock_client)
-
-    replacement = RegistryModel.model_validate(
-        {
-            "provider": "mistral",
-            "model_name": "mistral-large",
-        }
-    )
-
-    mock_client.list_models.return_value = [replacement]
-    registry.refresh()
-
-    assert registry.get("mistral/mistral-large") is not None
-    assert registry.get("openai/gpt-4") is None

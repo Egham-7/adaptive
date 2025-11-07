@@ -27,10 +27,11 @@ from app.models import (
     RegistryResponseError,
     RegistryClientConfig,
 )
+from app.registry import ModelRegistry
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
-from app.registry import ModelRegistry
+
 from app.registry.client import AsyncRegistryClient
 from app.utils import (
     resolve_models,
@@ -245,8 +246,8 @@ def create_app() -> FastAPI:
                 httpx.AsyncClient(timeout=app_state.settings.model_registry_timeout),
             )
             app_state.registry_client = registry_client
-            app_state.registry = ModelRegistry(registry_client, auto_refresh=False)
-            await app_state.registry.refresh(model_ids=profile_model_ids)
+            models = await registry_client.list_models()
+            app_state.registry = ModelRegistry(registry_client, models)
             logger.info("ModelResolverService initialized successfully")
 
             logger.info("FastAPI application started successfully")
@@ -303,12 +304,10 @@ def create_app() -> FastAPI:
             app_state.registry_client = AsyncRegistryClient(config, http_client)
         return app_state.registry_client
 
-    async def get_registry() -> ModelRegistry:
+    def get_registry() -> ModelRegistry:
         """Get ModelRegistry dependency."""
         if app_state.registry is None:
-            client = await get_registry_client()
-            app_state.registry = ModelRegistry(client, auto_refresh=False)
-            # Note: Registry is already refreshed in lifespan with profile models
+            raise RuntimeError("Registry not initialized")
         return app_state.registry
 
     async def get_router() -> ModelRouter:

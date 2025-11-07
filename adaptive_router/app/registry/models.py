@@ -22,54 +22,12 @@ class ModelRegistry:
     """Simple cache facade around :class:`AsyncRegistryClient`."""
 
     def __init__(
-        self, client: AsyncRegistryClient, *, auto_refresh: bool = True
+        self, client: AsyncRegistryClient, models: list[RegistryModel]
     ) -> None:
         self._client = client
         self._models_by_id: dict[str, RegistryModel] = {}
-        self._models_by_name: dict[str, list[RegistryModel]] = {}
-
-        if auto_refresh:
-            # Note: auto_refresh is deprecated for async registry - use await refresh() instead
-            raise ValueError(
-                "ModelRegistry with auto_refresh=True is not supported for async client. Use await refresh() explicitly."
-            )
-
-    # ------------------------------------------------------------------
-    # Loading & caching helpers
-    async def refresh(self, model_ids: list[str] | None = None) -> None:
-        """Fetch models from the registry service and cache them.
-
-        Args:
-            model_ids: Optional list of model IDs to fetch. If None, fetches all models.
-        """
-
-        try:
-            if model_ids is None:
-                # Fetch all models
-                registry_models = await self._client.list_models()
-            else:
-                # Fetch only specific models
-                registry_models = []
-                for model_id in model_ids:
-                    try:
-                        provider, model_name = model_id.split("/", 1)
-                        model = await self._client.get_by_provider_and_name(
-                            provider, model_name
-                        )
-                        if model is not None:
-                            registry_models.append(model)
-                    except (ValueError, RegistryError) as exc:
-                        logger.warning("Failed to fetch model %s: %s", model_id, exc)
-                        continue
-
-        except RegistryError as exc:
-            logger.error(
-                "Failed to load models from registry",
-                extra={"error": str(exc), "error_type": type(exc).__name__},
-            )
-            raise
-
-        self._populate_cache(registry_models)
+        self._models_by_name: dict[str, list[RegistryModel]] = defaultdict(list)
+        self._populate_cache(models)
 
     def _populate_cache(self, registry_models: Iterable[RegistryModel]) -> None:
         """Populate internal cache from registry models.
@@ -110,83 +68,24 @@ class ModelRegistry:
     # Public accessors
     def list_models(self) -> List[RegistryModel]:
         """Return all cached models as a list."""
-
         return list(self._models_by_id.values())
 
     def get(self, unique_id: str) -> RegistryModel | None:
         """Retrieve a model by its ``provider:model`` identifier."""
-
         if not unique_id:
             return None
         return self._models_by_id.get(_normalise(unique_id))
 
     def get_by_name(self, model_name: str) -> list[RegistryModel]:
         """Return all models matching the raw ``model_name`` regardless of provider."""
-
         if not model_name:
             return []
         return list(self._models_by_name.get(_normalise(model_name), []))
 
     def providers_for_model(self, model_name: str) -> set[str]:
         """Return providers that expose the given ``model_name``."""
-
-        return {
-            _normalise(model.provider)
-            for model in self.get_by_name(model_name)
-            if model.provider
-        }
-
-    def is_valid_model(self, unique_id: str) -> bool:
-        return self.get(unique_id) is not None
-
-    def is_valid_model_name(self, model_name: str) -> bool:
-        return bool(self.get_by_name(model_name))
-
-    def get_all_model_ids(self) -> list[str]:
-        return list(self._models_by_id.keys())
-
-    def get_stats(self) -> dict[str, int]:
-        stats: dict[str, int] = {}
-        for model in self._models_by_id.values():
-            provider = _normalise(model.provider)
-            if not provider:
-                continue
-            stats[provider] = stats.get(provider, 0) + 1
-        return stats
-
-    # ------------------------------------------------------------------
-    # Filtering helpers
-    def filter(
-        self,
-        *,
-        provider: str | None = None,
-        model_name: str | None = None,
-        min_context: int | None = None,
-    ) -> list[RegistryModel]:
-        """Filter cached models by common registry attributes.
-
-        This is a very small helper intended for internal usage. Consumers that
-        require more advanced querying should call the registry service
-        directly.
-        """
-
-        filtered: list[RegistryModel] = []
-
-        for model in self._models_by_id.values():
-            if provider and _normalise(model.provider) != _normalise(provider):
-                continue
-
-            if model_name and _normalise(model.model_name) != _normalise(model_name):
-                continue
-
-            if min_context is not None and (
-                model.context_length is None or model.context_length < min_context
-            ):
-                continue
-
-            filtered.append(model)
-
-        return filtered
+        models = self.get_by_name(model_name)
+        return {_normalise(model.provider) for model in models if model.provider}
 
 
 def _normalise(value: str | None) -> str:
