@@ -83,44 +83,47 @@ async def load_models_for_profile_async(
         base_url=settings.model_registry_base_url,
         timeout=settings.model_registry_timeout,
     )
-    client = AsyncRegistryClient(
-        config, httpx.AsyncClient(timeout=settings.model_registry_timeout)
-    )
-    logger.info(
-        "Loading %d models from registry at %s", len(model_ids), config.base_url
-    )
+    async with httpx.AsyncClient(
+        timeout=settings.model_registry_timeout
+    ) as http_client:
+        client = AsyncRegistryClient(config, http_client)
+        logger.info(
+            "Loading %d models from registry at %s", len(model_ids), config.base_url
+        )
 
-    try:
-        await client.health_check()
-    except (RegistryConnectionError, RegistryResponseError) as err:
-        raise ValueError(f"Model registry health check failed: {err}") from err
-
-    # Load only the specific models requested
-    router_models = []
-    for model_id in model_ids:
         try:
-            provider, model_name = model_id.split("/", 1)
-            registry_model = await client.get_by_provider_and_name(provider, model_name)
-            if registry_model is None:
-                logger.warning("Model %s not found in registry", model_id)
+            await client.health_check()
+        except (RegistryConnectionError, RegistryResponseError) as err:
+            raise ValueError(f"Model registry health check failed: {err}") from err
+
+        # Load only the specific models requested
+        router_models = []
+        for model_id in model_ids:
+            try:
+                provider, model_name = model_id.split("/", 1)
+                registry_model = await client.get_by_provider_and_name(
+                    provider, model_name
+                )
+                if registry_model is None:
+                    logger.warning("Model %s not found in registry", model_id)
+                    continue
+
+                model = _registry_model_to_model(registry_model)
+                if model is not None:
+                    router_models.append(model)
+                else:
+                    logger.warning("Model %s has invalid/missing pricing", model_id)
+
+            except (ValueError, RegistryError) as err:
+                logger.warning("Failed to load model %s: %s", model_id, err)
                 continue
 
-            model = _registry_model_to_model(registry_model)
-            if model is not None:
-                router_models.append(model)
-            else:
-                logger.warning("Model %s has invalid/missing pricing", model_id)
-
-        except (ValueError, RegistryError) as err:
-            logger.warning("Failed to load model %s: %s", model_id, err)
-            continue
-
-    logger.info(
-        "Loaded %d/%d models from registry",
-        len(router_models),
-        len(model_ids),
-    )
-    return router_models
+        logger.info(
+            "Loaded %d/%d models from registry",
+            len(router_models),
+            len(model_ids),
+        )
+        return router_models
 
 
 # Inlined from model_router_factory.py
@@ -259,6 +262,8 @@ def create_app() -> FastAPI:
 
         # Cleanup on shutdown
         logger.info("Shutting down Adaptive Router...")
+        if app_state.registry_client is not None:
+            await app_state.registry_client._client.aclose()
 
     app = FastAPI(
         title="Adaptive Router",
