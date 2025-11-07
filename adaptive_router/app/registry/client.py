@@ -200,6 +200,45 @@ class AsyncRegistryClient:
         """Raise if the registry health check fails."""
         await self._request("GET", "/healthz")
 
+    async def list_models(
+        self,
+        *,
+        provider: str | None = None,
+        model_name: str | None = None,
+    ) -> List[RegistryModel]:
+        """List models from registry with optional filtering.
+
+        Args:
+            provider: Filter by provider name
+            model_name: Filter by model name
+
+        Returns:
+            List of registry models matching filters
+
+        Raises:
+            RegistryConnectionError: If registry cannot be reached
+            RegistryResponseError: If registry returns invalid response
+        """
+        params = {
+            "provider": provider,
+            "model_name": model_name,
+        }
+        resp = await self._request("GET", "/models", params=params)
+        payload = resp.json()
+
+        if not isinstance(payload, list):
+            raise RegistryResponseError(
+                f"unexpected response payload type: {type(payload).__name__}"
+            )
+
+        models: List[RegistryModel] = []
+        for item in payload:
+            try:
+                models.append(RegistryModel.model_validate(item))
+            except (ValueError, TypeError) as err:
+                logger.warning("invalid model entry from registry: %s", err)
+        return models
+
     async def get_by_provider_and_name(
         self, provider: str, name: str
     ) -> RegistryModel | None:
