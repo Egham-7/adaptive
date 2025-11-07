@@ -100,10 +100,8 @@ async def load_models_for_profile_async(
         router_models = []
         for model_id in model_ids:
             try:
-                provider, model_name = model_id.split("/", 1)
-                registry_model = await client.get_by_provider_and_name(
-                    provider, model_name
-                )
+                author, model_name = model_id.split("/", 1)
+                registry_model = await client.get_by_author_and_name(author, model_name)
                 if registry_model is None:
                     logger.warning("Model %s not found in registry", model_id)
                     continue
@@ -480,9 +478,9 @@ def create_app() -> FastAPI:
 
             # Use injected async registry client for lookups
             try:
-                provider, model_name = selected_model_id.split("/", 1)
-                selected_registry_model = (
-                    await registry_client.get_by_provider_and_name(provider, model_name)
+                author, model_name = selected_model_id.split("/", 1)
+                selected_registry_model = await registry_client.get_by_author_and_name(
+                    author, model_name
                 )
             except (ValueError, RegistryError):
                 selected_registry_model = None
@@ -498,9 +496,9 @@ def create_app() -> FastAPI:
             for alt in response.alternatives:
                 alt_model_id = alt.model_id
                 try:
-                    provider, model_name = alt_model_id.split("/", 1)
-                    alt_registry_model = await registry_client.get_by_provider_and_name(
-                        provider, model_name
+                    author, model_name = alt_model_id.split("/", 1)
+                    alt_registry_model = await registry_client.get_by_author_and_name(
+                        author, model_name
                     )
                 except (ValueError, RegistryError):
                     alt_registry_model = None

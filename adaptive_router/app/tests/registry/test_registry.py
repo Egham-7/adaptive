@@ -19,8 +19,8 @@ class TestRegistryModel:
 
     def test_minimal_registry_model(self) -> None:
         """Test creating RegistryModel with minimal fields."""
-        model = RegistryModel(provider="openai", model_name="gpt-4")
-        assert model.provider == "openai"
+        model = RegistryModel(author="openai", model_name="gpt-4")
+        assert model.author == "openai"
         assert model.model_name == "gpt-4"
         assert model.pricing is None
         assert model.context_length is None
@@ -28,7 +28,7 @@ class TestRegistryModel:
     def test_full_registry_model(self) -> None:
         """Test creating RegistryModel with all fields."""
         model = RegistryModel(
-            provider="openai",
+            author="openai",
             model_name="gpt-4",
             description="GPT-4 model",
             context_length=128000,
@@ -38,37 +38,37 @@ class TestRegistryModel:
                 SupportedParameterModel(parameter_name="max_tokens"),
             ],
         )
-        assert model.provider == "openai"
+        assert model.author == "openai"
         assert model.description == "GPT-4 model"
         assert model.context_length == 128000
         assert model.pricing is not None
 
     def test_unique_id_generation(self) -> None:
         """Test unique_id generates correct format."""
-        model = RegistryModel(provider="openai", model_name="gpt-4")
+        model = RegistryModel(author="openai", model_name="gpt-4")
         assert model.unique_id() == "openai/gpt-4"
 
     def test_unique_id_lowercase_normalization(self) -> None:
         """Test unique_id normalizes to lowercase."""
-        model = RegistryModel(provider="OpenAI", model_name="GPT-4")
+        model = RegistryModel(author="OpenAI", model_name="GPT-4")
         assert model.unique_id() == "openai/gpt-4"
 
-    def test_unique_id_missing_provider(self) -> None:
-        """Test unique_id raises error when provider is empty."""
-        model = RegistryModel(provider="", model_name="gpt-4")
-        with pytest.raises(RegistryError, match="missing provider"):
+    def test_unique_id_missing_author(self) -> None:
+        """Test unique_id raises error when author is empty."""
+        model = RegistryModel(author="", model_name="gpt-4")
+        with pytest.raises(RegistryError, match="missing author field"):
             model.unique_id()
 
     def test_unique_id_missing_model_name(self) -> None:
         """Test unique_id raises error when model_name is empty."""
-        model = RegistryModel(provider="openai", model_name="")
+        model = RegistryModel(author="openai", model_name="")
         with pytest.raises(RegistryError, match="missing model_name"):
             model.unique_id()
 
     def test_average_price_calculation(self) -> None:
         """Test average_price calculates correctly."""
         model = RegistryModel(
-            provider="openai",
+            author="openai",
             model_name="gpt-4",
             pricing=PricingModel(prompt_cost="0.00003", completion_cost="0.00006"),
         )
@@ -78,7 +78,7 @@ class TestRegistryModel:
 
     def test_average_price_no_pricing(self) -> None:
         """Test average_price returns None when no pricing."""
-        model = RegistryModel(provider="openai", model_name="gpt-4")
+        model = RegistryModel(author="openai", model_name="gpt-4")
         assert model.average_price() is None
 
     def test_average_price_zero_costs(self) -> None:
@@ -86,7 +86,7 @@ class TestRegistryModel:
         from app.models import PricingModel
 
         model = RegistryModel(
-            provider="openai",
+            author="openai",
             model_name="gpt-4",
             pricing=PricingModel(prompt_cost="0", completion_cost="0"),
         )
@@ -95,7 +95,7 @@ class TestRegistryModel:
     def test_average_price_invalid_pricing(self) -> None:
         """Test average_price handles invalid pricing strings."""
         model = RegistryModel(
-            provider="openai",
+            author="openai",
             model_name="gpt-4",
             pricing=PricingModel(prompt_cost="invalid", completion_cost="0.00006"),
         )

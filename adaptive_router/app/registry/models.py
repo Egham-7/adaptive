@@ -71,21 +71,21 @@ class ModelRegistry:
         return list(self._models_by_id.values())
 
     def get(self, unique_id: str) -> RegistryModel | None:
-        """Retrieve a model by its ``provider:model`` identifier."""
+        """Retrieve a model by its ``author:model`` identifier."""
         if not unique_id:
             return None
         return self._models_by_id.get(_normalise(unique_id))
 
     def get_by_name(self, model_name: str) -> list[RegistryModel]:
-        """Return all models matching the raw ``model_name`` regardless of provider."""
+        """Return all models matching the raw ``model_name`` regardless of author."""
         if not model_name:
             return []
         return list(self._models_by_name.get(_normalise(model_name), []))
 
-    def providers_for_model(self, model_name: str) -> set[str]:
-        """Return providers that expose the given ``model_name``."""
+    def authors_for_model(self, model_name: str) -> set[str]:
+        """Return authors that expose the given ``model_name``."""
         models = self.get_by_name(model_name)
-        return {_normalise(model.provider) for model in models if model.provider}
+        return {_normalise(model.author) for model in models if model.author}
 
 
 def _normalise(value: str | None) -> str:

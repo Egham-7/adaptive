@@ -13,7 +13,7 @@ class TestRegistryModelToModel:
         """Test conversion of model with valid pricing."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
             }
@@ -31,7 +31,7 @@ class TestRegistryModelToModel:
         """Test that None is returned when pricing is missing."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": None,
             }
@@ -46,7 +46,7 @@ class TestRegistryModelToModel:
         """Test that None is returned when pricing is missing for implicit models."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": None,
             }
@@ -62,7 +62,7 @@ class TestRegistryModelToModel:
         """Test that None is returned when pricing parsing fails."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": {
                     "prompt_cost": "invalid",
@@ -80,7 +80,7 @@ class TestRegistryModelToModel:
         """Test that None is returned when pricing parsing fails for implicit models."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": {
                     "prompt_cost": "invalid",
@@ -99,7 +99,7 @@ class TestRegistryModelToModel:
         """Test that None pricing values are rejected (returns None)."""
         registry_model = RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": {"prompt_cost": None, "completion_cost": None},
             }
@@ -119,7 +119,7 @@ class TestResolveModels:
         models = [
             RegistryModel.model_validate(
                 {
-                    "provider": "openai",
+                    "author": "openai",
                     "model_name": "gpt-4",
                     "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
                 }
@@ -135,7 +135,7 @@ class TestResolveModels:
         models = [
             RegistryModel.model_validate(
                 {
-                    "provider": "openai",
+                    "author": "openai",
                     "model_name": "gpt-4",
                     "pricing": None,
                 }
@@ -150,7 +150,7 @@ class TestResolveModels:
         models = [
             RegistryModel.model_validate(
                 {
-                    "provider": "google",
+                    "author": "google",
                     "model_name": "gemini-2.0-flash-exp:free",
                     "pricing": {
                         "prompt_cost": "0.000001",
@@ -160,7 +160,7 @@ class TestResolveModels:
             ),
             RegistryModel.model_validate(
                 {
-                    "provider": "google",
+                    "author": "google",
                     "model_name": "gemini-2.0-flash-001",
                     "pricing": {
                         "prompt_cost": "0.000015",

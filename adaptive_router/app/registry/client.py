@@ -39,13 +39,13 @@ class RegistryClient:
     def list_models(
         self,
         *,
-        provider: str | None = None,
+        author: str | None = None,
         model_name: str | None = None,
     ) -> List[RegistryModel]:
         """List models from registry with optional filtering.
 
         Args:
-            provider: Filter by provider name
+            author: Filter by author name
             model_name: Filter by model name
 
         Returns:
@@ -56,7 +56,7 @@ class RegistryClient:
             RegistryResponseError: If registry returns invalid response
         """
         params = {
-            "provider": provider,
+            "author": author,
             "model_name": model_name,
         }
         resp = self._request("GET", "/models", params=params)
@@ -75,34 +75,32 @@ class RegistryClient:
                 logger.warning("invalid model entry from registry: %s", err)
         return models
 
-    def get_by_provider_and_name(
-        self, provider: str, name: str
-    ) -> RegistryModel | None:
-        """Get model by provider and model name.
+    def get_by_author_and_name(self, author: str, name: str) -> RegistryModel | None:
+        """Get model by author and model name.
 
         Args:
-            provider: Provider name
+            author: Author name
             name: Model name
 
         Returns:
             RegistryModel if found, None otherwise
 
         Raises:
-            ValueError: If provider or name is empty
+            ValueError: If author or name is empty
             RegistryConnectionError: If registry cannot be reached
             RegistryResponseError: If registry returns invalid response
         """
         # Strip whitespace from inputs
-        provider = provider.strip() if provider else ""
+        author = author.strip() if author else ""
         name = name.strip() if name else ""
 
         # Validate after stripping
-        if not provider:
-            raise ValueError("provider must be provided")
+        if not author:
+            raise ValueError("author must be provided")
         if not name:
             raise ValueError("name must be provided")
 
-        return self._get_model(f"/models/{provider}/{name}")
+        return self._get_model(f"/models/{author}/{name}")
 
     def _get_model(self, path: str) -> RegistryModel | None:
         """Get a single model from the registry.
@@ -203,13 +201,13 @@ class AsyncRegistryClient:
     async def list_models(
         self,
         *,
-        provider: str | None = None,
+        author: str | None = None,
         model_name: str | None = None,
     ) -> List[RegistryModel]:
         """List models from registry with optional filtering.
 
         Args:
-            provider: Filter by provider name
+            author: Filter by author name
             model_name: Filter by model name
 
         Returns:
@@ -220,7 +218,7 @@ class AsyncRegistryClient:
             RegistryResponseError: If registry returns invalid response
         """
         params = {
-            "provider": provider,
+            "author": author,
             "model_name": model_name,
         }
         resp = await self._request("GET", "/models", params=params)
@@ -239,34 +237,34 @@ class AsyncRegistryClient:
                 logger.warning("invalid model entry from registry: %s", err)
         return models
 
-    async def get_by_provider_and_name(
-        self, provider: str, name: str
+    async def get_by_author_and_name(
+        self, author: str, name: str
     ) -> RegistryModel | None:
-        """Get model by provider and model name.
+        """Get model by author and model name.
 
         Args:
-            provider: Provider name
+            author: Author name
             name: Model name
 
         Returns:
             RegistryModel if found, None otherwise
 
         Raises:
-            ValueError: If provider or name is empty
+            ValueError: If author or name is empty
             RegistryConnectionError: If registry cannot be reached
             RegistryResponseError: If registry returns invalid response
         """
         # Strip whitespace from inputs
-        provider = provider.strip() if provider else ""
+        author = author.strip() if author else ""
         name = name.strip() if name else ""
 
         # Validate after stripping
-        if not provider:
-            raise ValueError("provider must be provided")
+        if not author:
+            raise ValueError("author must be provided")
         if not name:
             raise ValueError("name must be provided")
 
-        return await self._get_model(f"/models/{provider}/{name}")
+        return await self._get_model(f"/models/{author}/{name}")
 
     async def _get_model(self, path: str) -> RegistryModel | None:
         """Get a single model from the registry.

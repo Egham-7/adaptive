@@ -16,7 +16,7 @@ class Model(BaseModel):
     and routing decisions, including mandatory cost data.
 
     Attributes:
-        provider: Model provider (e.g., "openai", "anthropic")
+        author: Model author (e.g., "openai", "anthropic")
         model_name: Model name (e.g., "gpt-4", "claude-sonnet-4-5")
         cost_per_1m_input_tokens: Cost per 1M input tokens
         cost_per_1m_output_tokens: Cost per 1M output tokens
@@ -40,10 +40,10 @@ class Model(BaseModel):
         """Construct the router-compatible unique identifier.
 
         Returns:
-            Unique identifier in format "provider/model_name"
+            Unique identifier in format "author/model_name"
 
         Raises:
-            ValueError: If provider or model_name is empty
+            ValueError: If author or model_name is empty
         """
         provider = (self.provider or "").strip().lower()
         if not provider:
@@ -106,7 +106,7 @@ class ModelSelectionRequest(BaseModel):
 class ModelSelectionAPIRequest(BaseModel):
     """API request model that accepts model specifications as strings.
 
-    This is the external API model that accepts "provider/model_name" or "provider/model_name:variant" strings,
+    This is the external API model that accepts "author/model_name" or "author/model_name:variant" strings,
     which are then resolved to Model objects internally.
     """
 
