@@ -263,6 +263,19 @@ async def create_model_router(settings: AppSettings) -> ModelRouter:
     # Load only the models referenced in the profile
     models = await load_models_for_profile_async(settings, model_ids)
 
+    # Create fuzzy matching variants of each model so the router can find them
+    # regardless of whether the profile uses dots or hyphens in version numbers
+    models = [
+        Model(
+            provider=variant.split("/", 1)[0],
+            model_name=variant.split("/", 1)[1],
+            cost_per_1m_input_tokens=model.cost_per_1m_input_tokens,
+            cost_per_1m_output_tokens=model.cost_per_1m_output_tokens,
+        )
+        for model in models
+        for variant in normalize_model_id(model.unique_id())
+    ]
+
     # Create router using the from_profile method
     router = ModelRouter.from_profile(
         profile=profile,
