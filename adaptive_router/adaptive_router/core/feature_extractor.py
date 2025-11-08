@@ -2,8 +2,9 @@
 
 import logging
 import warnings
-from functools import lru_cache
 from typing import Any, Dict, List, Tuple, Union
+
+import methodtools
 
 import numpy as np
 import torch
@@ -121,7 +122,7 @@ class FeatureExtractor:
             f"{tfidf_max_features} (TF-IDF)"
         )
 
-    @lru_cache(maxsize=128)
+    @methodtools.lru_cache(maxsize=128)
     def _encode_text_cached(self, text: str) -> np.ndarray:
         """Cache embeddings for identical prompts to improve performance.
 
