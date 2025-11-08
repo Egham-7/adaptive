@@ -472,14 +472,13 @@ def save_validation_set(questions: List[CodeQuestion], output_file: Path) -> Non
 
 
 def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
-    """Save cluster engine to pickle file.
+    """Save cluster engine to output directory as JSON files.
 
     Args:
         engine: Fitted ClusterEngine
         output_dir: Directory to save model
     """
-    pickle_path = output_dir / "cluster_engine.pkl"
-    engine.save(pickle_path)
+    engine.save(output_dir)
 
 
 def main():
