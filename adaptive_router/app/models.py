@@ -255,12 +255,12 @@ class ModelSelectionAPIRequest(BaseModel):
 
 
 class ModelSelectionAPIResponse(BaseModel):
-    """Enriched model selection response with full registry data.
+    """Simplified model selection response with model IDs only.
 
     Attributes:
-        selected_model: Full RegistryModel object for the selected model
-        alternatives: List of RegistryModel objects for alternative models
+        selected_model: Model ID string (author/model_name format)
+        alternatives: List of model ID strings for alternative models
     """
 
-    selected_model: RegistryModel
-    alternatives: list[RegistryModel]
+    selected_model: str
+    alternatives: list[str]
