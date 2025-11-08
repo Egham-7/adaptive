@@ -479,47 +479,13 @@ def create_app() -> FastAPI:
                 },
             )
 
-            # Transform library response to API response with full RegistryModel data
+            # Return simplified response with model IDs only
             selected_model_id = response.model_id
-
-            # Use injected async registry client for lookups
-            try:
-                author, model_name = selected_model_id.split("/", 1)
-                selected_registry_model = await registry_client.get_by_author_and_name(
-                    author, model_name
-                )
-            except (ValueError, RegistryError):
-                selected_registry_model = None
-
-            if selected_registry_model is None:
-                logger.warning(
-                    f"Selected model {selected_model_id} not found in registry, using minimal data"
-                )
-                raise ValueError("Selected model not found in registry")
-
-            # Lookup alternatives in registry
-            alternative_registry_models = []
-            for alt in response.alternatives:
-                alt_model_id = alt.model_id
-                try:
-                    author, model_name = alt_model_id.split("/", 1)
-                    alt_registry_model = await registry_client.get_by_author_and_name(
-                        author, model_name
-                    )
-                except (ValueError, RegistryError):
-                    alt_registry_model = None
-
-                if alt_registry_model is None:
-                    logger.warning(
-                        f"Alternative model {alt_model_id} not found in registry, skipping"
-                    )
-                    continue
-
-                alternative_registry_models.append(alt_registry_model)
+            alternative_model_ids = [alt.model_id for alt in response.alternatives]
 
             return ModelSelectionAPIResponse(
-                selected_model=selected_registry_model,
-                alternatives=alternative_registry_models,
+                selected_model=selected_model_id,
+                alternatives=alternative_model_ids,
             )
 
         except ValueError as e:
