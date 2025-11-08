@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # Exception classes
@@ -225,6 +225,33 @@ class EndpointModel(BaseModel):
 # ============================================================================
 # API Response Types
 # ============================================================================
+
+
+class ModelSelectionAPIRequest(BaseModel):
+    """API request model that accepts model specifications as strings.
+
+    This is the external API model that accepts "author/model_name" or "author/model_name:variant" strings,
+    which are then resolved to Model objects internally.
+    """
+
+    prompt: str
+    user_id: str | None = None
+    models: list[str] | None = None
+    cost_bias: float | None = None
+
+    @field_validator("prompt")
+    @classmethod
+    def validate_prompt(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Prompt cannot be empty or whitespace only")
+        return v.strip()
+
+    @field_validator("cost_bias")
+    @classmethod
+    def validate_cost_bias(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0.0 or v > 1.0):
+            raise ValueError("Cost bias must be between 0.0 and 1.0")
+        return v
 
 
 class ModelSelectionAPIResponse(BaseModel):

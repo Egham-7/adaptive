@@ -17,8 +17,9 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from adaptive_router.core.router import ModelRouter
-from adaptive_router.models.api import Model
-from adaptive_router.models.api import (
+from adaptive_router.models.api import Model, ModelSelectionRequest
+
+from app.models import (
     ModelSelectionAPIRequest,
 )
 from app.models import (
@@ -445,7 +446,12 @@ def create_app() -> FastAPI:
                     ) from e
 
             # Create internal request
-            internal_request = request.to_internal_request(resolved_models)
+            internal_request = ModelSelectionRequest(
+                prompt=request.prompt,
+                user_id=request.user_id,
+                models=resolved_models,
+                cost_bias=request.cost_bias,
+            )
 
             logger.info(
                 "Processing model selection request",
