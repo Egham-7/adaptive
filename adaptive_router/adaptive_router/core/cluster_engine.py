@@ -200,10 +200,17 @@ class ClusterEngine(BaseEstimator):
         metadata_file = filepath / "metadata.json"
         metadata = {
             "n_clusters": self.n_clusters,
+            "max_iter": self.max_iter,
+            "random_state": self.random_state,
+            "n_init": self.n_init,
+            "algorithm": self.kmeans.algorithm,
             "embedding_model": self.embedding_model,
             "tfidf_max_features": self.tfidf_max_features,
             "tfidf_ngram_range": list(self.tfidf_ngram_range),
             "silhouette_score": float(self.silhouette),
+            "n_iter_": int(self.kmeans.n_iter_),
+            "inertia_": float(self.kmeans.inertia_),
+            "n_features_in_": int(self.kmeans.n_features_in_),
         }
         with open(metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
@@ -233,6 +240,9 @@ class ClusterEngine(BaseEstimator):
         # Reconstruct the engine
         engine = cls(
             n_clusters=metadata["n_clusters"],
+            max_iter=metadata["max_iter"],
+            random_state=metadata["random_state"],
+            n_init=metadata["n_init"],
             embedding_model=metadata["embedding_model"],
             tfidf_max_features=metadata["tfidf_max_features"],
             tfidf_ngram_range=tuple(metadata["tfidf_ngram_range"]),
@@ -242,11 +252,27 @@ class ClusterEngine(BaseEstimator):
         from sklearn.cluster import KMeans
         import numpy as np
 
-        engine.kmeans = KMeans(n_clusters=metadata["n_clusters"])
+        # Reconstruct KMeans with all saved parameters
+        engine.kmeans = KMeans(
+            n_clusters=metadata["n_clusters"],
+            max_iter=metadata["max_iter"],
+            random_state=metadata["random_state"],
+            n_init=metadata["n_init"],
+            algorithm=metadata["algorithm"],
+        )
+
+        # Restore fitted attributes
         engine.kmeans.cluster_centers_ = np.array(cluster_data["cluster_centers"])
-        engine.cluster_assignments = np.array(
+        engine.kmeans.labels_ = np.array(
             list(cluster_data["cluster_assignments"].values())
         )
+        engine.kmeans.n_iter_ = metadata["n_iter_"]
+        engine.kmeans.inertia_ = metadata["inertia_"]
+        # Set n_features_in_ if it exists (sklearn >= 1.0)
+        setattr(engine.kmeans, "n_features_in_", metadata["n_features_in_"])  # type: ignore
+        engine.kmeans._n_threads = 1  # Set default thread count
+
+        engine.cluster_assignments = engine.kmeans.labels_
         engine.silhouette = metadata["silhouette_score"]
 
         logger.info(f"Loaded cluster engine from {filepath}")
