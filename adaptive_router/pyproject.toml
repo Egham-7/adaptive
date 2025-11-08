@@ -137,6 +137,7 @@ module = [
   "rich.*",
   "boto3.*",
   "botocore.*",
+  "methodtools.*",
 ]
 ignore_missing_imports = true
 

@@ -270,7 +270,7 @@ class ClusterEngine(BaseEstimator):
         engine.kmeans.n_iter_ = metadata["n_iter_"]
         engine.kmeans.inertia_ = metadata["inertia_"]
         # Set n_features_in_ if it exists (sklearn >= 1.0)
-        setattr(engine.kmeans, "n_features_in_", metadata["n_features_in_"])  # type: ignore
+        setattr(engine.kmeans, "n_features_in_", metadata["n_features_in_"])
         engine.kmeans._n_threads = 1  # Set default thread count
 
         engine.cluster_assignments = engine.kmeans.labels_
