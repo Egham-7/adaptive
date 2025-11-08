@@ -214,7 +214,7 @@ class ClusterEngine(BaseEstimator):
             "n_features_in_": int(self.kmeans.n_features_in_),
             "feature_extractor": {
                 "is_fitted": self.feature_extractor.is_fitted,
-                "tfidf_vocabulary": self.feature_extractor.tfidf_vectorizer.vocabulary_,
+                "tfidf_vocabulary": {k: int(v) for k, v in self.feature_extractor.tfidf_vectorizer.vocabulary_.items()},
                 "tfidf_idf": self.feature_extractor.tfidf_vectorizer.idf_.tolist(),
                 "embedding_scaler": {
                     "mean": self.feature_extractor.embedding_scaler.mean_.tolist(),
