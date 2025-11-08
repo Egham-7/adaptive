@@ -255,7 +255,7 @@ def save_cluster_model(
     logger.info("  Saving metadata.json...")
     metadata = {
         "n_clusters": engine.n_clusters,
-        "n_train_questions": len(engine.questions),
+        "n_train_questions": len(engine.cluster_assignments),
         "silhouette_score": silhouette_score,
         "embedding_model": engine.feature_extractor.embedding_model_name,
         "tfidf_max_features": engine.feature_extractor.tfidf_vectorizer.max_features,
@@ -339,7 +339,7 @@ def run_clustering(
     engine.fit(questions)
 
     # Get cluster info
-    cluster_info = engine.get_cluster_info()
+    cluster_info = engine.cluster_stats
 
     logger.info("\n" + "=" * 80)
     logger.info("CLUSTERING RESULTS")
