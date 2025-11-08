@@ -16,7 +16,7 @@ class Model(BaseModel):
     and routing decisions, including mandatory cost data.
 
     Attributes:
-        author: Model author (e.g., "openai", "anthropic")
+        provider: Model provider (e.g., "openai", "anthropic")
         model_name: Model name (e.g., "gpt-4", "claude-sonnet-4-5")
         cost_per_1m_input_tokens: Cost per 1M input tokens
         cost_per_1m_output_tokens: Cost per 1M output tokens
