@@ -1,6 +1,8 @@
-from adaptive_router.core.router import ModelRouter
-from adaptive_router.core.cluster_engine import ClusterEngine
-from adaptive_router.core.feature_extractor import FeatureExtractor
+"""Adaptive Router Exceptions Module.
+
+This module contains exception classes used throughout the Adaptive Router library.
+"""
+
 from adaptive_router.exceptions.core import (
     AdaptiveRouterError,
     ClusterNotFittedError,
@@ -11,9 +13,6 @@ from adaptive_router.exceptions.core import (
 )
 
 __all__ = [
-    "ModelRouter",
-    "ClusterEngine",
-    "FeatureExtractor",
     "AdaptiveRouterError",
     "ClusterNotFittedError",
     "FeatureExtractionError",

@@ -10,7 +10,7 @@ import torch
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler
-from adaptive_router.core.exceptions import FeatureExtractionError
+from adaptive_router.exceptions.core import FeatureExtractionError
 from adaptive_router.models import CodeQuestion
 
 

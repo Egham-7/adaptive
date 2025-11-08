@@ -35,7 +35,7 @@ from adaptive_router.models.routing import (
 from adaptive_router.models.storage import RouterProfile, MinIOSettings
 from adaptive_router.core.cluster_engine import ClusterEngine
 from adaptive_router.core.feature_extractor import FeatureExtractor
-from adaptive_router.core.exceptions import (
+from adaptive_router.exceptions.core import (
     ModelNotFoundError,
     InvalidModelFormatError,
 )
