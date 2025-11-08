@@ -3,7 +3,8 @@
 import numpy as np
 import pytest
 
-from adaptive_router.core.feature_extractor import FeatureExtractor
+from adaptive_router.core import FeatureExtractor
+from adaptive_router.exceptions.core import FeatureExtractionError
 from adaptive_router.models import CodeQuestion
 
 
@@ -158,7 +159,9 @@ class TestFeatureExtractorTransform:
             answer="A",
         )
 
-        with pytest.raises(Exception, match="Must call fit_transform before"):
+        with pytest.raises(
+            FeatureExtractionError, match="Must call fit_transform before"
+        ):
             feature_extractor.transform([question])
 
 
