@@ -15,7 +15,7 @@ def registry_models() -> list[RegistryModel]:
     return [
         RegistryModel.model_validate(
             {
-                "provider": "openai",
+                "author": "openai",
                 "model_name": "gpt-4",
                 "pricing": {"prompt_cost": "0.00001", "completion_cost": "0.00002"},
                 "context_length": 128_000,
@@ -27,7 +27,7 @@ def registry_models() -> list[RegistryModel]:
         ),
         RegistryModel.model_validate(
             {
-                "provider": "anthropic",
+                "author": "anthropic",
                 "model_name": "claude-3-sonnet",
                 "pricing": {"prompt_cost": "0.00002", "completion_cost": "0.00001"},
                 "context_length": 200_000,
@@ -60,16 +60,16 @@ def test_list_models(model_registry: ModelRegistry) -> None:
 def test_get_by_unique_id(model_registry: ModelRegistry) -> None:
     model = model_registry.get("openai/gpt-4")
     assert model is not None
-    assert model.provider == "openai"
+    assert model.author == "openai"
 
 
 def test_get_by_name(model_registry: ModelRegistry) -> None:
     models = model_registry.get_by_name("gpt-4")
     assert len(models) == 1
-    assert models[0].provider == "openai"
+    assert models[0].author == "openai"
     assert models[0].model_name == "gpt-4"
 
 
-def test_providers_for_model(model_registry: ModelRegistry) -> None:
-    providers = model_registry.providers_for_model("claude-3-sonnet")
-    assert providers == {"anthropic"}
+def test_authors_for_model(model_registry: ModelRegistry) -> None:
+    authors = model_registry.authors_for_model("claude-3-sonnet")
+    assert authors == {"anthropic"}

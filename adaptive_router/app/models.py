@@ -54,7 +54,7 @@ class RegistryModel(BaseModel):
 
     Attributes:
         id: Database ID
-        provider: Model provider (e.g., "openai", "anthropic")
+        author: Model author (e.g., "openai", "anthropic")
         model_name: Model name
         display_name: Human-readable display name
         description: Model description
@@ -64,7 +64,7 @@ class RegistryModel(BaseModel):
         top_provider: Top provider information (ModelTopProvider entity)
         supported_parameters: List of ModelSupportedParameter entities
         default_parameters: ModelDefaultParameters entity with JSONB parameters
-        endpoints: List of ModelEndpoint entities with nested pricing
+        providers: List of ModelEndpoint entities with nested pricing
         created_at: Creation timestamp
         last_updated: Last update timestamp
     """
@@ -72,7 +72,7 @@ class RegistryModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = None
-    provider: str  # REQUIRED
+    author: str  # REQUIRED
     model_name: str  # REQUIRED
     display_name: str | None = Field(default=None, alias="display_name")  # OPTIONAL
     description: str | None = None  # OPTIONAL
@@ -86,7 +86,7 @@ class RegistryModel(BaseModel):
     default_parameters: Dict[str, Any] | None = Field(
         default=None, alias="default_parameters"
     )
-    endpoints: list[EndpointModel] | None = None
+    providers: list[EndpointModel] | None = None
     created_at: datetime | None = Field(default=None, alias="created_at")
     last_updated: datetime | None = Field(default=None, alias="last_updated")
 
@@ -94,21 +94,21 @@ class RegistryModel(BaseModel):
         """Construct the router-compatible unique identifier.
 
         Returns:
-            Unique identifier in format "provider/model_name"
+            Unique identifier in format "author/model_name"
 
         Raises:
-            RegistryError: If provider or model_name is missing
+            RegistryError: If author or model_name is missing
         """
-        provider = (self.provider or "").strip().lower()
-        if not provider:
-            raise RegistryError("registry model missing provider field")
+        author = (self.author or "").strip().lower()
+        if not author:
+            raise RegistryError("registry model missing author field")
 
         if not self.model_name:
-            raise RegistryError(f"registry model '{provider}' missing model_name")
+            raise RegistryError(f"registry model '{author}' missing model_name")
 
         model_name = self.model_name.strip().lower()
 
-        return f"{provider}/{model_name}"
+        return f"{author}/{model_name}"
 
     def average_price(self) -> float | None:
         """Calculate average price from available pricing fields.

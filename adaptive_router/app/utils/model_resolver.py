@@ -76,7 +76,7 @@ def _registry_model_to_model(
         return None
 
     return Model(
-        provider=registry_model.provider,
+        provider=registry_model.author,
         model_name=registry_model.model_name,
         cost_per_1m_input_tokens=prompt_cost_per_million,
         cost_per_1m_output_tokens=completion_cost_per_million,
@@ -103,34 +103,34 @@ def resolve_models(
 
     for spec in model_specs:
         try:
-            provider, model_name = spec.split("/", 1)
+            author, model_name = spec.split("/", 1)
         except ValueError as e:
             raise ValueError(
-                f"Invalid model specification '{spec}': expected format 'provider/model_name'"
+                f"Invalid model specification '{spec}': expected format 'author/model_name'"
             ) from e
 
         # Find exact match
         candidates = [
             m
             for m in registry_models
-            if (m.provider and m.provider.lower() == provider.lower())
+            if (m.author and m.author.lower() == author.lower())
             and (m.model_name and m.model_name.lower() == model_name.lower())
         ]
 
         if not candidates:
-            # Show available models from the same provider if any
-            provider_models = [
+            # Show available models from the same author if any
+            author_models = [
                 m.unique_id()
                 for m in registry_models
-                if m.provider and m.provider.lower() == provider.lower()
+                if m.author and m.author.lower() == author.lower()
             ]
 
             error_msg = f"Model '{spec}' not found in registry"
-            if provider_models:
-                suggestions = provider_models[:5]
-                error_msg += f". Available {provider} models: {', '.join(suggestions)}"
-                if len(provider_models) > 5:
-                    error_msg += f" (and {len(provider_models) - 5} more)"
+            if author_models:
+                suggestions = author_models[:5]
+                error_msg += f". Available {author} models: {', '.join(suggestions)}"
+                if len(author_models) > 5:
+                    error_msg += f" (and {len(author_models) - 5} more)"
 
             raise ValueError(error_msg)
 

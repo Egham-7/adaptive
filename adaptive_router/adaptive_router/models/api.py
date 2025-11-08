@@ -40,10 +40,10 @@ class Model(BaseModel):
         """Construct the router-compatible unique identifier.
 
         Returns:
-            Unique identifier in format "provider/model_name"
+            Unique identifier in format "author/model_name"
 
         Raises:
-            ValueError: If provider or model_name is empty
+            ValueError: If author or model_name is empty
         """
         provider = (self.provider or "").strip().lower()
         if not provider:
@@ -106,7 +106,7 @@ class ModelSelectionRequest(BaseModel):
 class ModelSelectionAPIRequest(BaseModel):
     """API request model that accepts model specifications as strings.
 
-    This is the external API model that accepts "provider/model_name" or "provider/model_name:variant" strings,
+    This is the external API model that accepts "author/model_name" or "author/model_name:variant" strings,
     which are then resolved to Model objects internally.
     """
 
