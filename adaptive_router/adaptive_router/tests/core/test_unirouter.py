@@ -203,7 +203,7 @@ class TestClusterEngine:
         with pytest.raises(
             ValueError, match="zero-size array to reduction operation minimum"
         ):
-            pass
+            _ = small_cluster_engine.cluster_stats
 
 
 @pytest.mark.unit
