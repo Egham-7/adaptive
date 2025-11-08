@@ -204,7 +204,7 @@ class TestClusterEngine:
         """Test getting cluster info before fitting."""
 
         with pytest.raises(
-            ValueError, match="zero-size array to reduction operation minimum"
+            RuntimeError, match="Must call fit\\(\\) before accessing cluster_stats"
         ):
             _ = small_cluster_engine.cluster_stats
 

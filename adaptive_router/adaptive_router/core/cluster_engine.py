@@ -212,6 +212,21 @@ class ClusterEngine(BaseEstimator):
             "n_iter_": int(self.kmeans.n_iter_),
             "inertia_": float(self.kmeans.inertia_),
             "n_features_in_": int(self.kmeans.n_features_in_),
+            "feature_extractor": {
+                "is_fitted": self.feature_extractor.is_fitted,
+                "tfidf_vocabulary": self.feature_extractor.tfidf_vectorizer.vocabulary_,
+                "tfidf_idf": self.feature_extractor.tfidf_vectorizer.idf_.tolist(),
+                "embedding_scaler": {
+                    "mean": self.feature_extractor.embedding_scaler.mean_.tolist(),
+                    "var": self.feature_extractor.embedding_scaler.var_.tolist(),
+                    "scale": self.feature_extractor.embedding_scaler.scale_.tolist(),
+                },
+                "tfidf_scaler": {
+                    "mean": self.feature_extractor.tfidf_scaler.mean_.tolist(),
+                    "var": self.feature_extractor.tfidf_scaler.var_.tolist(),
+                    "scale": self.feature_extractor.tfidf_scaler.scale_.tolist(),
+                },
+            },
         }
         with open(metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
@@ -276,6 +291,38 @@ class ClusterEngine(BaseEstimator):
         engine.cluster_assignments = engine.kmeans.labels_
         engine.silhouette = metadata["silhouette_score"]
 
+        # Restore feature extractor state
+        fe_state = metadata["feature_extractor"]
+        engine.feature_extractor.tfidf_vectorizer.vocabulary_ = fe_state[
+            "tfidf_vocabulary"
+        ]
+        engine.feature_extractor.tfidf_vectorizer.idf_ = np.array(fe_state["tfidf_idf"])
+        engine.feature_extractor.embedding_scaler.mean_ = np.array(
+            fe_state["embedding_scaler"]["mean"]
+        )
+        engine.feature_extractor.embedding_scaler.var_ = np.array(
+            fe_state["embedding_scaler"]["var"]
+        )
+        engine.feature_extractor.embedding_scaler.scale_ = np.array(
+            fe_state["embedding_scaler"]["scale"]
+        )
+        engine.feature_extractor.embedding_scaler.n_features_in_ = (
+            engine.kmeans.n_features_in_
+        )
+        engine.feature_extractor.tfidf_scaler.mean_ = np.array(
+            fe_state["tfidf_scaler"]["mean"]
+        )
+        engine.feature_extractor.tfidf_scaler.var_ = np.array(
+            fe_state["tfidf_scaler"]["var"]
+        )
+        engine.feature_extractor.tfidf_scaler.scale_ = np.array(
+            fe_state["tfidf_scaler"]["scale"]
+        )
+        engine.feature_extractor.tfidf_scaler.n_features_in_ = (
+            engine.kmeans.n_features_in_
+        )
+        engine.feature_extractor.is_fitted = fe_state["is_fitted"]
+
         logger.info(f"Loaded cluster engine from {filepath}")
         return engine
 
@@ -285,8 +332,14 @@ class ClusterEngine(BaseEstimator):
 
         Returns:
             Dictionary with clustering statistics
+
+        Raises:
+            RuntimeError: If called before fit
         """
         check_is_fitted(self, ["kmeans"])
+
+        if len(self.cluster_assignments) == 0:
+            raise RuntimeError("Must call fit() before accessing cluster_stats")
 
         unique, counts = np.unique(self.cluster_assignments, return_counts=True)
 
