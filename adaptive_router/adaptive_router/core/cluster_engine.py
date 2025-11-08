@@ -13,6 +13,7 @@ from sklearn.utils.validation import check_is_fitted
 
 from adaptive_router.models import CodeQuestion
 from adaptive_router.core.feature_extractor import FeatureExtractor
+from adaptive_router.exceptions.core import ClusterNotFittedError
 from sklearn.preprocessing import normalize
 
 logger = logging.getLogger(__name__)
@@ -175,7 +176,7 @@ class ClusterEngine(BaseEstimator):
             Exception: If called before fit
         """
         if not hasattr(self, "kmeans") or not hasattr(self.kmeans, "cluster_centers_"):
-            raise Exception("Cannot save unfitted")
+            raise ClusterNotFittedError("Cannot save unfitted")
 
         filepath.mkdir(parents=True, exist_ok=True)
 
