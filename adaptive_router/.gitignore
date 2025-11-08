@@ -85,4 +85,9 @@ S3_SETUP.md
 
 .tessl/
 .mcp.json
-*.json
+# ClusterEngine generated artifacts (keep locally, load from S3 in production)
+adaptive_router/data/unirouter/clusters/*.json
+adaptive_router/data/unirouter/predictions/*.json
+adaptive_router/data/unirouter/validation/*.json
+adaptive_router/data/unirouter/batch/*.json
+adaptive_router/data/unirouter/checkpoints/*.json
