@@ -11,6 +11,7 @@ from adaptive_router.models import CodeQuestion
 from adaptive_router.models.api import Model
 from adaptive_router.core.cluster_engine import ClusterEngine
 from adaptive_router.core.router import ModelRouter
+from adaptive_router.exceptions.core import FeatureExtractionError
 
 
 @pytest.fixture
@@ -171,7 +172,9 @@ class TestClusterEngine:
         """Test that assign_question raises error if called before fit."""
         engine = small_cluster_engine
 
-        with pytest.raises(Exception, match="Must call fit_transform before transform"):
+        with pytest.raises(
+            FeatureExtractionError, match="Must call fit_transform before transform"
+        ):
             engine.assign_question("Test question")
 
     @pytest.mark.slow
