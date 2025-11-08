@@ -2,21 +2,23 @@
 
 import json
 import logging
-import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.utils.validation import check_is_fitted
 
 from adaptive_router.models import CodeQuestion
 from adaptive_router.core.feature_extractor import FeatureExtractor
+from sklearn.preprocessing import normalize
 
 logger = logging.getLogger(__name__)
 
 
-class ClusterEngine:
+class ClusterEngine(BaseEstimator):
     """Unified engine for clustering questions using K-means on hybrid features."""
 
     def __init__(
@@ -40,7 +42,14 @@ class ClusterEngine:
             tfidf_max_features: Maximum TF-IDF features
             tfidf_ngram_range: N-gram range for TF-IDF
         """
-        logger.info(f"Initializing ClusterEngine with K={n_clusters}")
+        # Store parameters for saving/loading
+        self.n_clusters = n_clusters
+        self.max_iter = max_iter
+        self.random_state = random_state
+        self.n_init = n_init
+        self.embedding_model = embedding_model
+        self.tfidf_max_features = tfidf_max_features
+        self.tfidf_ngram_range = tfidf_ngram_range
 
         # Feature extractor
         self.feature_extractor = FeatureExtractor(
@@ -60,14 +69,8 @@ class ClusterEngine:
             algorithm="lloyd",  # Use Lloyd algorithm for better convergence
         )
 
-        # Flag to normalize features (spherical k-means)
-        self.use_spherical = True
-
-        self.n_clusters = n_clusters
-        self.is_fitted = False
         self.cluster_assignments: np.ndarray = np.array([])
         self.silhouette: float = 0.0
-        self.questions: List[CodeQuestion] = []
 
     def fit(self, questions: List[CodeQuestion]) -> "ClusterEngine":
         """Fit clustering model on questions.
@@ -79,27 +82,18 @@ class ClusterEngine:
             Self for method chaining
         """
         logger.info(f"Fitting clustering model on {len(questions)} questions...")
-        self.questions = questions
 
         # Extract hybrid features
         features = self.feature_extractor.fit_transform(questions)
 
         # Normalize features for spherical k-means (cosine similarity)
-        if self.use_spherical:
-            from sklearn.preprocessing import normalize
-
-            features = normalize(features, norm="l2")
-            logger.info(
-                "Applied L2 normalization for spherical K-means (cosine similarity)"
-            )
+        features = normalize(features, norm="l2")
 
         # Perform K-means clustering
-        logger.info("Running K-means clustering...")
         self.kmeans.fit(features)
         self.cluster_assignments = self.kmeans.labels_
 
         # Compute silhouette score
-        logger.info("Computing silhouette score...")
         unique_labels = np.unique(self.cluster_assignments)
 
         if len(unique_labels) > 1:
@@ -112,10 +106,7 @@ class ClusterEngine:
                 "Silhouette score is undefined: all points assigned to a single cluster"
             )
 
-        self.is_fitted = True
-
         logger.info(f"Clustering complete! Silhouette score: {self.silhouette:.3f}")
-        self._log_cluster_distribution()
 
         return self
 
@@ -131,37 +122,18 @@ class ClusterEngine:
         Raises:
             ValueError: If predict is called before fit
         """
-        if not self.is_fitted:
-            raise ValueError("Must call fit before predict")
+        check_is_fitted(self, ["kmeans"])
 
         # Extract features
         features = self.feature_extractor.transform(questions)
 
-        # Normalize if using spherical k-means
-        if self.use_spherical:
-            from sklearn.preprocessing import normalize
+        # Normalize features for spherical k-means (cosine similarity)
+        from sklearn.preprocessing import normalize
 
-            features = normalize(features, norm="l2")
+        features = normalize(features, norm="l2")
 
         # Predict clusters
         return self.kmeans.predict(features)
-
-    def assign_clusters(self, questions: List[CodeQuestion]) -> np.ndarray:
-        """Assign questions to clusters (alias for predict).
-
-        This method name matches the paper's terminology: "assign each validation
-        set prompt to a cluster".
-
-        Args:
-            questions: List of CodeQuestion objects
-
-        Returns:
-            Numpy array of cluster IDs
-
-        Raises:
-            ValueError: If called before fit
-        """
-        return self.predict(questions)
 
     def assign_question(self, question_text: str) -> Tuple[int, float]:
         """Assign a single question to the nearest cluster.
@@ -175,17 +147,13 @@ class ClusterEngine:
         Raises:
             ValueError: If called before fit
         """
-        if not self.is_fitted:
-            raise ValueError("Must call fit before assign_question")
+        check_is_fitted(self, ["kmeans"])
 
         # Extract features directly from text (no wrapper needed)
         features = self.feature_extractor.transform([question_text])
 
-        # Normalize if using spherical k-means (consistency with fit/predict)
-        if self.use_spherical:
-            from sklearn.preprocessing import normalize
-
-            features = normalize(features, norm="l2")
+        # Normalize features for spherical k-means (cosine similarity)
+        features = normalize(features, norm="l2")
 
         # Predict cluster and compute distance
         cluster_id = int(self.kmeans.predict(features)[0])
@@ -194,165 +162,110 @@ class ClusterEngine:
 
         return cluster_id, distance
 
-    def save(self, output_dir: Path, save_pickle: bool = False) -> Dict[str, str]:
-        """Save clustering artifacts as lightweight JSON (+ optional pickle).
-
-        Saves lightweight JSON files for Git tracking and optionally full pickle for local use.
+    def save(self, filepath: Path) -> Dict[str, Path]:
+        """Save the clustering engine to JSON files.
 
         Args:
-            output_dir: Directory to save artifacts
-            save_pickle: Whether to save pickle file (for local use, gitignored)
+            filepath: Directory path to save the engine files
 
         Returns:
-            Dictionary with file paths
+            Dictionary with paths to saved files
+
+        Raises:
+            Exception: If called before fit
         """
-        if not self.is_fitted:
-            raise ValueError("Cannot save unfitted model")
+        if not hasattr(self, "kmeans") or not hasattr(self.kmeans, "cluster_centers_"):
+            raise Exception("Cannot save unfitted")
 
-        output_dir.mkdir(parents=True, exist_ok=True)
+        filepath.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"\nSaving cluster engine to {output_dir}")
-
-        # 1. Save cluster centers as JSON (Git-friendly)
-        cluster_centers_file = output_dir / "cluster_centers.json"
+        # Save cluster centers
+        cluster_centers_file = filepath / "cluster_centers.json"
         cluster_data = {
             "cluster_centers": self.kmeans.cluster_centers_.tolist(),
             "cluster_assignments": {
-                q.question_id: int(cluster_id)
-                for q, cluster_id in zip(self.questions, self.cluster_assignments)
+                q_id: int(cluster_id)
+                for q_id, cluster_id in zip(
+                    [f"q{i}" for i in range(len(self.cluster_assignments))],
+                    self.cluster_assignments,
+                )
             },
             "n_clusters": self.n_clusters,
-            "feature_dim": self.kmeans.cluster_centers_.shape[1],
-            "feature_info": self.feature_extractor.get_feature_info(),
+            "feature_info": {"total_dim": self.kmeans.cluster_centers_.shape[1]},
         }
         with open(cluster_centers_file, "w") as f:
             json.dump(cluster_data, f, indent=2)
 
-        cluster_centers_size = cluster_centers_file.stat().st_size / 1024
-        logger.info(f"✅ Saved cluster_centers.json ({cluster_centers_size:.1f} KB)")
-
-        # 2. Save TF-IDF vocabulary as JSON (Git-friendly)
-        tfidf_vocab_file = output_dir / "tfidf_vocabulary.json"
-
-        # Convert vocabulary to native Python types (numpy int64 -> int)
-        vocabulary_native = {
-            str(k): int(v)
-            for k, v in self.feature_extractor.tfidf_vectorizer.vocabulary_.items()
-        }
-
-        tfidf_data = {
-            "vocabulary": vocabulary_native,
-            "idf": self.feature_extractor.tfidf_vectorizer.idf_.tolist(),
-            "max_features": int(self.feature_extractor.tfidf_vectorizer.max_features),
-            "ngram_range": list(self.feature_extractor.tfidf_vectorizer.ngram_range),
-        }
-        with open(tfidf_vocab_file, "w") as f:
-            json.dump(tfidf_data, f, indent=2)
-
-        tfidf_vocab_size = tfidf_vocab_file.stat().st_size / 1024
-        logger.info(f"✅ Saved tfidf_vocabulary.json ({tfidf_vocab_size:.1f} KB)")
-
-        # 3. Save scaler parameters as JSON (Git-friendly)
-        logger.info("Saving scaler parameters...")
-        scaler_params_file = output_dir / "scaler_parameters.json"
-        scaler_data = {
-            "embedding_scaler": {
-                "mean": self.feature_extractor.embedding_scaler.mean_.tolist(),
-                "scale": self.feature_extractor.embedding_scaler.scale_.tolist(),
-            },
-            "tfidf_scaler": {
-                "mean": self.feature_extractor.tfidf_scaler.mean_.tolist(),
-                "scale": self.feature_extractor.tfidf_scaler.scale_.tolist(),
-            },
-        }
-        with open(scaler_params_file, "w") as f:
-            json.dump(scaler_data, f, indent=2)
-
-        scaler_params_size = scaler_params_file.stat().st_size / 1024
-        logger.info(f"✅ Saved scaler_parameters.json ({scaler_params_size:.1f} KB)")
-
-        # 4. Save metadata with enhanced config info
-        cluster_info = self.get_cluster_info()
+        # Save metadata
+        metadata_file = filepath / "metadata.json"
         metadata = {
-            "n_clusters": cluster_info["n_clusters"],
-            "n_train_questions": cluster_info["n_questions"],
-            "silhouette_score": cluster_info["silhouette_score"],
-            "embedding_model": self.feature_extractor.embedding_model_name,
-            "embedding_dim": self.feature_extractor.embedding_dim,
-            "tfidf_max_features": self.feature_extractor.tfidf_vectorizer.max_features,
-            "tfidf_ngram_range": list(
-                self.feature_extractor.tfidf_vectorizer.ngram_range
-            ),
-            "total_features": self.feature_extractor.embedding_dim
-            + self.feature_extractor.tfidf_vectorizer.max_features,
-            "cluster_sizes": cluster_info["cluster_sizes"],
+            "n_clusters": self.n_clusters,
+            "embedding_model": self.embedding_model,
+            "tfidf_max_features": self.tfidf_max_features,
+            "tfidf_ngram_range": list(self.tfidf_ngram_range),
+            "silhouette_score": float(self.silhouette),
         }
-
-        metadata_file = output_dir / "metadata.json"
         with open(metadata_file, "w") as f:
             json.dump(metadata, f, indent=2)
 
-        logger.info("✅ Saved metadata.json")
+        logger.info(f"Saved cluster engine to {filepath}")
+        return {"cluster_file": cluster_centers_file, "metadata_file": metadata_file}
 
-        # Prepare return dictionary
-        result = {
-            "cluster_file": str(cluster_centers_file),
-            "tfidf_vocab_file": str(tfidf_vocab_file),
-            "scaler_params_file": str(scaler_params_file),
-            "metadata_file": str(metadata_file),
-        }
+    @classmethod
+    def load(cls, filepath: Path) -> "ClusterEngine":
+        """Load a clustering engine from JSON files.
 
-        # 5. Optionally save pickle for local use (will be gitignored)
-        if save_pickle:
-            pickle_file = output_dir / "cluster_engine.pkl"
-            with open(pickle_file, "wb") as f:
-                pickle.dump(self, f)
+        Args:
+            filepath: Directory path containing the engine files
 
-            pickle_size = pickle_file.stat().st_size / 1024 / 1024
-            logger.info(
-                f"✅ Saved cluster_engine.pkl ({pickle_size:.1f} MB) [local only, gitignored]"
-            )
-            result["pickle_file"] = str(pickle_file)
+        Returns:
+            Loaded ClusterEngine instance
+        """
+        cluster_file = filepath / "cluster_centers.json"
+        metadata_file = filepath / "metadata.json"
 
-            total_json_size = (
-                cluster_centers_size
-                + tfidf_vocab_size
-                + scaler_params_size
-                + (metadata_file.stat().st_size / 1024)
-            )
-            logger.info(f"\n📊 Total JSON size: {total_json_size:.1f} KB (Git-tracked)")
-            logger.info(f"📊 Pickle size: {pickle_size:.1f} MB (local only)")
-            logger.info(
-                f"📊 Size reduction for Git: {(1 - total_json_size / 1024 / pickle_size) * 100:.1f}%"
-            )
+        with open(cluster_file) as f:
+            cluster_data = json.load(f)
 
-        return result
+        with open(metadata_file) as f:
+            metadata = json.load(f)
 
-    def _log_cluster_distribution(self) -> None:
-        """Log distribution of questions across clusters."""
-        unique, counts = np.unique(self.cluster_assignments, return_counts=True)
+        # Reconstruct the engine
+        engine = cls(
+            n_clusters=metadata["n_clusters"],
+            embedding_model=metadata["embedding_model"],
+            tfidf_max_features=metadata["tfidf_max_features"],
+            tfidf_ngram_range=tuple(metadata["tfidf_ngram_range"]),
+        )
 
-        logger.info("Cluster distribution:")
-        for cluster_id, count in zip(unique, counts):
-            percentage = (count / len(self.cluster_assignments)) * 100
-            logger.info(
-                f"  Cluster {cluster_id}: {count} questions ({percentage:.1f}%)"
-            )
+        # Set fitted state
+        from sklearn.cluster import KMeans
+        import numpy as np
 
-    def get_cluster_info(self) -> Dict[str, Any]:
+        engine.kmeans = KMeans(n_clusters=metadata["n_clusters"])
+        engine.kmeans.cluster_centers_ = np.array(cluster_data["cluster_centers"])
+        engine.cluster_assignments = np.array(
+            list(cluster_data["cluster_assignments"].values())
+        )
+        engine.silhouette = metadata["silhouette_score"]
+
+        logger.info(f"Loaded cluster engine from {filepath}")
+        return engine
+
+    @property
+    def cluster_stats(self) -> Dict[str, Any]:
         """Get information about clustering results.
 
         Returns:
             Dictionary with clustering statistics
         """
-        if not self.is_fitted:
-            return {"error": "Model not fitted"}
+        check_is_fitted(self, ["kmeans"])
 
         unique, counts = np.unique(self.cluster_assignments, return_counts=True)
 
         return {
             "n_clusters": self.n_clusters,
-            "n_questions": len(self.questions),
+            "n_questions": len(self.cluster_assignments),
             "silhouette_score": self.silhouette,
             "cluster_sizes": {
                 int(cluster_id): int(count) for cluster_id, count in zip(unique, counts)

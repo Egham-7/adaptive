@@ -12,10 +12,12 @@ from __future__ import annotations
 import logging
 import time
 import warnings
+from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
+from sentence_transformers import SentenceTransformer
 
 from adaptive_router.loaders.local import LocalFileProfileLoader
 from adaptive_router.loaders.minio import MinIOProfileLoader
@@ -32,6 +34,12 @@ from adaptive_router.models.routing import (
 )
 from adaptive_router.models.storage import RouterProfile, MinIOSettings
 from adaptive_router.core.cluster_engine import ClusterEngine
+from adaptive_router.core.feature_extractor import FeatureExtractor
+from adaptive_router.core.exceptions import (
+    ModelNotFoundError,
+    InvalidModelFormatError,
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +79,7 @@ class ModelRouter:
                                    Defaults to False for security.
 
         Raises:
-            ValueError: If models don't match profile.llm_profiles
+            ModelNotFoundError: If models don't match profile.llm_profiles
         """
         n_clusters = profile.metadata.n_clusters
         logger.info(f"Initializing ModelRouter with {n_clusters} clusters")
@@ -121,7 +129,7 @@ class ModelRouter:
             )
 
         if not self.model_features:
-            raise ValueError("No valid model features found in llm_profiles")
+            raise ModelNotFoundError("No valid model features found in llm_profiles")
 
         self.lambda_min = lambda_min
         self.lambda_max = lambda_max
@@ -130,6 +138,11 @@ class ModelRouter:
         all_costs = [f.cost_per_1m_tokens for f in self.model_features.values()]
         self.min_cost = min(all_costs)
         self.max_cost = max(all_costs)
+
+    @cached_property
+    def cost_range(self) -> float:
+        """Cache cost range calculation for performance."""
+        return self.max_cost - self.min_cost
 
         logger.info(
             f"ModelRouter initialized with {len(self.model_features)} models, "
@@ -146,17 +159,42 @@ class ModelRouter:
 
         Args:
             profile: Validated RouterProfile from storage
+            allow_trust_remote_code: Whether to allow remote code execution
 
         Returns:
             Reconstructed ClusterEngine
         """
+        # Load and configure embedding model
+        embedding_model = self._load_embedding_model(
+            profile.metadata.embedding_model, allow_trust_remote_code
+        )
+
+        # Restore feature extractor with scalers and vocabulary
+        feature_extractor = self._restore_feature_extractor(
+            profile, embedding_model, allow_trust_remote_code
+        )
+
+        # Restore cluster engine with K-means parameters
+        cluster_engine = self._restore_cluster_engine(profile, feature_extractor)
+
+        return cluster_engine
+
+    def _load_embedding_model(
+        self,
+        embedding_model_name: str,
+        allow_trust_remote_code: bool,
+    ) -> SentenceTransformer:
+        """Load and configure the embedding model.
+
+        Args:
+            embedding_model_name: Name of the SentenceTransformer model
+            allow_trust_remote_code: Whether to allow remote code execution
+
+        Returns:
+            Configured SentenceTransformer model
+        """
         import platform
-
         import torch
-        from sentence_transformers import SentenceTransformer
-        from sklearn.preprocessing import StandardScaler
-
-        from adaptive_router.core.feature_extractor import FeatureExtractor
 
         # Determine device (CPU for macOS, CUDA if available otherwise)
         device = (
@@ -166,8 +204,6 @@ class ModelRouter:
         )
         logger.info(f"Loading embedding model on device: {device}")
 
-        # Create fresh SentenceTransformer model
-        embedding_model_name = profile.metadata.embedding_model
         # Suppress the clean_up_tokenization_spaces warning during model loading
         with warnings.catch_warnings():
             warnings.filterwarnings(
@@ -183,9 +219,30 @@ class ModelRouter:
         # Explicitly set clean_up_tokenization_spaces to False for future compatibility
         embedding_model.tokenizer.clean_up_tokenization_spaces = False
 
+        return embedding_model
+
+    def _restore_feature_extractor(
+        self,
+        profile: RouterProfile,
+        embedding_model: SentenceTransformer,
+        allow_trust_remote_code: bool,
+    ) -> FeatureExtractor:
+        """Restore FeatureExtractor from profile data.
+
+        Args:
+            profile: RouterProfile with stored parameters
+            embedding_model: Loaded SentenceTransformer model
+            allow_trust_remote_code: Trust remote code setting
+
+        Returns:
+            Configured FeatureExtractor
+        """
+        from sklearn.preprocessing import StandardScaler
+        from adaptive_router.core.feature_extractor import FeatureExtractor
+
         # Create FeatureExtractor with fresh model
         feature_extractor = FeatureExtractor(
-            embedding_model=embedding_model_name,
+            embedding_model=profile.metadata.embedding_model,
             tfidf_max_features=profile.metadata.tfidf_max_features,
             tfidf_ngram_range=tuple(profile.metadata.tfidf_ngram_range),  # type: ignore[arg-type]
             allow_trust_remote_code=allow_trust_remote_code,
@@ -230,10 +287,26 @@ class ModelRouter:
 
         feature_extractor.is_fitted = True
 
+        return feature_extractor
+
+    def _restore_cluster_engine(
+        self,
+        profile: RouterProfile,
+        feature_extractor: FeatureExtractor,
+    ) -> ClusterEngine:
+        """Restore ClusterEngine from profile data.
+
+        Args:
+            profile: RouterProfile with cluster data
+            feature_extractor: Configured FeatureExtractor
+
+        Returns:
+            Configured ClusterEngine
+        """
         # Create ClusterEngine
         cluster_engine = ClusterEngine(
             n_clusters=profile.cluster_centers.n_clusters,
-            embedding_model=embedding_model_name,
+            embedding_model=profile.metadata.embedding_model,
             tfidf_max_features=profile.metadata.tfidf_max_features,
             tfidf_ngram_range=tuple(profile.metadata.tfidf_ngram_range),  # type: ignore[arg-type]
         )
@@ -250,7 +323,6 @@ class ModelRouter:
             cluster_engine.kmeans.cluster_centers_.shape[1]
         )
 
-        cluster_engine.is_fitted = True
         cluster_engine.silhouette = profile.metadata.silhouette_score or 0.0
 
         logger.info(
@@ -260,7 +332,12 @@ class ModelRouter:
 
         return cluster_engine
 
-    def select_model(self, request: ModelSelectionRequest) -> ModelSelectionResponse:
+    def select_model(
+        self,
+        request: ModelSelectionRequest,
+        *,
+        cost_bias: float | None = None,
+    ) -> ModelSelectionResponse:
         """Select optimal model based on prompt analysis.
 
         This is the main public API method. Uses cluster-based routing to select
@@ -268,27 +345,38 @@ class ModelRouter:
         historical per-cluster error rates.
 
         Args:
-            request: ModelSelectionRequest with prompt and optional models/cost_bias
+            request: ModelSelectionRequest with prompt and optional model constraints
+            cost_bias: Override default cost preference (0.0=cheap, 1.0=quality).
+                      If not provided, uses the request's cost_bias or default_cost_preference.
 
         Returns:
             ModelSelectionResponse with selected provider, model, and alternatives
 
         Raises:
-            ValueError: If requested models are not supported or validation fails
-            RuntimeError: If routing fails
+            ModelNotFoundError: If requested models are not supported
+            InvalidModelFormatError: If model ID format is invalid
+
+        Examples:
+            >>> router.select_model(ModelSelectionRequest(prompt="How do I sort a list?"))
+            >>> router.select_model(request, cost_bias=0.8)  # Quality-focused
         """
         start_time = time.time()
 
         # Extract and validate allowed models if provided
-        allowed_model_ids: List[str] | None = None
+        allowed_model_ids: Optional[List[str]] = None
         if request.models:
             allowed_model_ids = self._filter_models_by_request(request.models)
 
         # Map cost_bias (0.0=cheap, 1.0=quality) to cost_preference
+        # Priority: explicit parameter > request field > default
         cost_preference = (
-            request.cost_bias
-            if request.cost_bias is not None
-            else self.default_cost_preference
+            cost_bias
+            if cost_bias is not None
+            else (
+                request.cost_bias
+                if request.cost_bias is not None
+                else self.default_cost_preference
+            )
         )
 
         # Route the question - all routing logic inline now
@@ -309,7 +397,7 @@ class ModelRouter:
             }
 
             if not models_to_score:
-                raise ValueError(
+                raise ModelNotFoundError(
                     f"No valid models found in allowed list. "
                     f"Allowed: {allowed_model_ids}, Available: {list(self.model_features.keys())}"
                 )
@@ -363,14 +451,14 @@ class ModelRouter:
 
         # Parse model ID to extract provider and model name
         if "/" not in best_model_id:
-            raise ValueError(
+            raise InvalidModelFormatError(
                 f"Invalid model ID format: {best_model_id}. "
                 f"Expected format: 'provider/model_name' (e.g., 'openai/gpt-4')"
             )
 
         selected_model_parts = best_model_id.split("/", 1)
         if len(selected_model_parts) != 2 or not all(selected_model_parts):
-            raise ValueError(
+            raise InvalidModelFormatError(
                 f"Invalid model ID format: {best_model_id}. "
                 f"Both provider and model_name must be non-empty. "
                 f"Expected format: 'provider/model_name'"
@@ -396,6 +484,33 @@ class ModelRouter:
         )
 
         return response
+
+    def route(self, prompt: str, cost_bias: float | None = None) -> str:
+        """Quick routing - just give me the model ID.
+
+        Convenience method for simple routing use cases. Returns only the selected
+        model ID without the full response object.
+
+        Args:
+            prompt: Question text to route
+            cost_bias: Cost preference (0.0=cheap, 1.0=quality). Uses default if None.
+
+        Returns:
+            Model ID string (e.g., "openai/gpt-4")
+
+        Raises:
+            ModelNotFoundError: If no suitable models found
+            InvalidModelFormatError: If model ID format is invalid
+
+        Examples:
+            >>> router.route("How do I sort a list?")
+            'openai/gpt-3.5-turbo'
+            >>> router.route("Complex analysis needed", cost_bias=0.9)
+            'openai/gpt-4'
+        """
+        request = ModelSelectionRequest(prompt=prompt, cost_bias=cost_bias)
+        response = self.select_model(request, cost_bias=cost_bias)
+        return response.model_id
 
     @classmethod
     def from_profile(
@@ -458,7 +573,7 @@ class ModelRouter:
             allow_trust_remote_code=allow_trust_remote_code,
         )
 
-    def _filter_models_by_request(self, models: List[Model]) -> List[str] | None:
+    def _filter_models_by_request(self, models: List[Model]) -> Optional[List[str]]:
         """Filter supported models based on request model specifications.
 
         This method provides a scalable filtering mechanism that can handle:
@@ -474,7 +589,7 @@ class ModelRouter:
             or None if no filtering should be applied
 
         Raises:
-            ValueError: If requested models are not supported or no models match filters
+            ModelNotFoundError: If requested models are not supported or no models match filters
         """
         supported = self.get_supported_models()
 
@@ -518,7 +633,7 @@ class ModelRouter:
                 )
             ]
             if not provider_filtered:
-                raise ValueError(
+                raise ModelNotFoundError(
                     f"No supported models found for providers: {provider_filters}. "
                     f"Supported models: {supported}"
                 )
@@ -544,7 +659,7 @@ class ModelRouter:
 
             # Ensure we have at least one model after filtering
             if not unique_models:
-                raise ValueError(
+                raise ModelNotFoundError(
                     f"No supported models remain after filtering. "
                     f"Requested models were filtered out. "
                     f"Supported models: {supported}"
@@ -579,11 +694,10 @@ class ModelRouter:
         Returns:
             Normalized cost
         """
-        cost_range = self.max_cost - self.min_cost
-        if cost_range < _EPSILON:
+        if self.cost_range < _EPSILON:
             return 0.0
 
-        return float((cost - self.min_cost) / cost_range)
+        return float((cost - self.min_cost) / self.cost_range)
 
     def _generate_reasoning(
         self,

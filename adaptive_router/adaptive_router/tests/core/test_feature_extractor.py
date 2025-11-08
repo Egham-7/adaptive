@@ -158,7 +158,7 @@ class TestFeatureExtractorTransform:
             answer="A",
         )
 
-        with pytest.raises((ValueError, AttributeError)):
+        with pytest.raises(Exception, match="Must call fit_transform before"):
             feature_extractor.transform([question])
 
 

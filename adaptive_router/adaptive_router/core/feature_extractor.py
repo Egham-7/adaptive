@@ -2,6 +2,7 @@
 
 import logging
 import warnings
+from functools import lru_cache
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
@@ -9,8 +10,9 @@ import torch
 from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler
-
+from adaptive_router.core.exceptions import FeatureExtractionError
 from adaptive_router.models import CodeQuestion
+
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +121,23 @@ class FeatureExtractor:
             f"{tfidf_max_features} (TF-IDF)"
         )
 
+    @lru_cache(maxsize=128)
+    def _encode_text_cached(self, text: str) -> np.ndarray:
+        """Cache embeddings for identical prompts to improve performance.
+
+        Args:
+            text: Input text to encode
+
+        Returns:
+            Normalized embedding vector
+        """
+        return self.embedding_model.encode(
+            [text],
+            show_progress_bar=False,
+            batch_size=32,
+            normalize_embeddings=True,
+        )[0]
+
     def fit_transform(self, questions: List[CodeQuestion]) -> np.ndarray:
         """Fit on questions and transform to hybrid features.
 
@@ -179,7 +198,7 @@ class FeatureExtractor:
             ValueError: If transform is called before fit_transform or empty input
         """
         if not self.is_fitted:
-            raise ValueError("Must call fit_transform before transform")
+            raise FeatureExtractionError("Must call fit_transform before transform")
 
         if not questions:
             raise ValueError("Cannot transform empty list")
@@ -194,12 +213,17 @@ class FeatureExtractor:
         logger.info(f"Transforming {len(texts)} questions...")
 
         # 1. Generate semantic embeddings
-        embeddings = self.embedding_model.encode(
-            texts,
-            show_progress_bar=False,
-            batch_size=32,
-            normalize_embeddings=True,
-        )
+        if len(texts) == 1:
+            # Use cached encoding for single text (common in production)
+            embeddings = np.array([self._encode_text_cached(texts[0])])
+        else:
+            # Batch encode for multiple texts
+            embeddings = self.embedding_model.encode(
+                texts,
+                show_progress_bar=False,
+                batch_size=32,
+                normalize_embeddings=True,
+            )
 
         # 2. Generate TF-IDF features
         tfidf_features = self.tfidf_vectorizer.transform(texts).toarray()

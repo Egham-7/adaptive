@@ -85,3 +85,4 @@ S3_SETUP.md
 
 .tessl/
 .mcp.json
+*.json

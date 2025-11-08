@@ -318,7 +318,7 @@ def find_optimal_k(
 
         # Fit and get silhouette score
         engine.fit(questions)
-        cluster_info = engine.get_cluster_info()
+        cluster_info = engine.cluster_stats
         silhouette = cluster_info["silhouette_score"]
 
         results.append((k, silhouette))
@@ -374,7 +374,7 @@ def cluster_with_k(
     )
 
     engine.fit(questions)
-    cluster_info = engine.get_cluster_info()
+    cluster_info = engine.cluster_stats
 
     logger.info("\nClustering complete!")
     logger.info(f"  Silhouette score: {cluster_info['silhouette_score']:.6f}")
@@ -471,19 +471,15 @@ def save_validation_set(questions: List[CodeQuestion], output_file: Path) -> Non
     logger.info(f"✅ Saved {len(questions)} questions ({file_size:.2f} MB)")
 
 
-def save_cluster_engine(
-    engine: ClusterEngine, output_dir: Path, save_pickle: bool = True
-) -> None:
-    """Save cluster engine to JSON files (+ pickle for local use).
-
-    Saves lightweight JSON files for Git tracking and full pickle for local use.
+def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
+    """Save cluster engine to pickle file.
 
     Args:
         engine: Fitted ClusterEngine
         output_dir: Directory to save model
-        save_pickle: Whether to save pickle file (default: True for local use)
     """
-    engine.save(output_dir, save_pickle=save_pickle)
+    pickle_path = output_dir / "cluster_engine.pkl"
+    engine.save(pickle_path)
 
 
 def main():
@@ -585,7 +581,7 @@ def main():
             logger.info(f"Would save cluster engine with K={optimal_k}")
         else:
             save_validation_set(sampled_questions, VALIDATION_FILE)
-            save_cluster_engine(cluster_engine, CLUSTERS_DIR, save_pickle=True)
+            save_cluster_engine(cluster_engine, CLUSTERS_DIR)
 
             logger.info("\n✅ CLUSTERING & SAMPLING COMPLETE!")
             logger.info(f"\n{'='*80}")
