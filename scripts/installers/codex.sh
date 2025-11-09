@@ -284,9 +284,9 @@ validate_model_override() {
     return 0
   fi
 
-  # Validate format: provider:model_name
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+:[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: provider:model_name (e.g., anthropic:claude-sonnet-4-20250514, openai:gpt-4o) or empty string for intelligent routing"
+  # Validate format: provider/model_id
+  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+    log_error "Model format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-20250514, openai/gpt-4o) or empty string for intelligent routing"
     return 1
   fi
   return 0
@@ -334,7 +334,7 @@ configure_codex() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='anthropic:claude-sonnet-4-20250514'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='anthropic/claude-sonnet-4-20250514'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -556,7 +556,7 @@ main() {
     echo "💡 Usage Examples:"
     echo "   codex                     # Interactive mode"
     echo "   codex exec \"create a React component for user auth\""
-    echo "   codex --model anthropic:claude-sonnet-4-20250514"
+    echo "   codex --model anthropic/claude-sonnet-4-20250514"
     echo "   codex --sandbox read-only # Secure sandbox mode"
     echo ""
     echo "📊 Monitor Usage:"
@@ -566,7 +566,7 @@ main() {
     echo ""
     echo "💡 Pro Tips:"
     echo "   • Intelligent routing enabled by default for optimal cost/performance"
-    echo "   • Available models: anthropic:claude-sonnet-4-20250514, openai:gpt-4o, etc."
+    echo "   • Available models: anthropic/claude-sonnet-4-20250514, openai/gpt-4o, etc."
     echo "   • Use --sandbox workspace-write for file editing tasks"
     echo "   • Configure MCP servers for extended capabilities"
     echo "   • Create AGENTS.md for project-specific instructions"

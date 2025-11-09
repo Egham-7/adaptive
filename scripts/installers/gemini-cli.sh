@@ -331,9 +331,9 @@ validate_model_override() {
     return 0
   fi
 
-  # Validate format: provider:model_name
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+:[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: provider:model_name (e.g., gemini:gemini-2.5-pro, gemini:gemini-2.5-flash, anthropic:claude-sonnet-4-20250514) or empty string for intelligent routing"
+  # Validate format: provider/model_id
+  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+    log_error "Model format invalid. Use format: provider/model_id (e.g., gemini/gemini-2.5-pro, gemini/gemini-2.5-flash, anthropic/claude-sonnet-4-20250514) or empty string for intelligent routing"
     return 1
   fi
   return 0
@@ -384,7 +384,7 @@ configure_gemini() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='gemini:gemini-2.5-flash'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='gemini/gemini-2.5-flash'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/gemini-cli.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -497,8 +497,8 @@ main() {
     echo "💡 Pro Tips:"
     echo "   • Your API key is automatically saved to your shell config"
     echo "   • GEMINI_MODEL set to empty for intelligent routing (optimal cost/performance)"
-    echo "   • Set GEMINI_MODEL='gemini:gemini-2.5-flash' to override with specific model"
-    echo "   • Use provider:model format (e.g., gemini:gemini-2.5-pro, anthropic:claude-sonnet-4-20250514)"
+    echo "   • Set GEMINI_MODEL='gemini/gemini-2.5-flash' to override with specific model"
+    echo "   • Use provider/model_id format (e.g., gemini/gemini-2.5-pro, anthropic/claude-sonnet-4-20250514)"
     echo "   • Access to Anthropic Claude, OpenAI, and other providers via Adaptive routing"
     echo ""
     echo "🔄 Load Balancing & Fallbacks:"

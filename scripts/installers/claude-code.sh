@@ -189,9 +189,9 @@ validate_model_override() {
     return 0
   fi
 
-  # Validate format: provider:model_name
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+:[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model override format invalid. Use format: provider:model_name (e.g., anthropic:claude-sonnet-4-0) or empty string for intelligent routing"
+  # Validate format: provider/model_id
+  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+    log_error "Model override format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-0) or empty string for intelligent routing"
     return 1
   fi
   return 0
@@ -247,8 +247,8 @@ configure_claude() {
     echo ""
     echo "🎯 Option 3: Customize models (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_PRIMARY_MODEL='anthropic:claude-opus-4-1'  # or empty for intelligent routing"
-    echo "   export ADAPTIVE_FAST_MODEL='anthropic:claude-3-5-haiku-latest'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_PRIMARY_MODEL='anthropic/claude-opus-4-1'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_FAST_MODEL='anthropic/claude-3-5-haiku-latest'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -401,7 +401,7 @@ main() {
     echo "   • Intelligent routing enabled by default for optimal cost/performance"
     echo "   • Current models: Claude Opus 4.1, Sonnet 4, Haiku 3.5"
     echo "   • Override models: ADAPTIVE_PRIMARY_MODEL, ADAPTIVE_FAST_MODEL env vars"
-    echo "   • Use provider:model format (e.g. anthropic:claude-opus-4-1)"
+    echo "   • Use provider/model_id format (e.g. anthropic/claude-opus-4-1)"
     echo ""
     echo "📖 Full Documentation: https://docs.llmadaptive.uk/developer-tools/claude-code"
     echo "🐛 Report Issues: https://github.com/Egham-7/adaptive/issues"
