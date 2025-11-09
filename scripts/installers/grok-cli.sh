@@ -18,7 +18,7 @@ API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 # Model override defaults (can be overridden by environment variables)
 # Empty strings enable intelligent model routing for optimal cost/performance
 DEFAULT_MODEL=""
-DEFAULT_MODELS='["anthropic:claude-sonnet-4-20250514","anthropic:claude-3-5-haiku-20241022","anthropic:claude-opus-4-1-20250805","openai:gpt-4o","openai:gpt-4o-mini","google:gemini-2.5-pro"]'
+DEFAULT_MODELS='["anthropic/claude-sonnet-4-20250514","anthropic/claude-3-5-haiku-20241022","anthropic/claude-opus-4-1-20250805","openai/gpt-4o","openai/gpt-4o-mini","google/gemini-2.5-pro"]'
 
 # ========================
 #       Utility Functions
@@ -351,9 +351,9 @@ validate_model_override() {
     return 0
   fi
 
-  # Validate format: provider:model_name
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+:[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: provider:model_name (e.g., anthropic:claude-sonnet-4-20250514, openai:gpt-4o) or empty string for intelligent routing"
+  # Validate format: provider/model_id
+  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+    log_error "Model format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-20250514, openai/gpt-4o) or empty string for intelligent routing"
     return 1
   fi
   return 0
@@ -402,7 +402,7 @@ configure_grok() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='anthropic:claude-sonnet-4-20250514'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='anthropic/claude-sonnet-4-20250514'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash"
     echo ""
      echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -415,7 +415,7 @@ configure_grok() {
     echo '  "apiKey": "your_api_key_here",'
     echo '  "baseURL": "https://www.llmadaptive.uk/api/v1",'
     echo '  "defaultModel": "",'
-    echo '  "models": ["anthropic:claude-sonnet-4-20250514","anthropic:claude-3-5-haiku-20241022","anthropic:claude-opus-4-1-20250805","openai:gpt-4o","openai:gpt-4o-mini"]'
+    echo '  "models": ["anthropic/claude-sonnet-4-20250514","anthropic/claude-3-5-haiku-20241022","anthropic/claude-opus-4-1-20250805","openai/gpt-4o","openai/gpt-4o-mini"]'
     echo "}"
     echo "EOF"
     echo ""
@@ -553,7 +553,7 @@ main() {
      echo "💡 Pro Tips:"
      echo "   • Your API key is automatically saved to your shell config"
      echo "   • Intelligent routing enabled by default for optimal cost/performance"
-    echo "   • Available models: anthropic:claude-sonnet-4-20250514, anthropic:claude-opus-4-1-20250805, openai:gpt-4o, etc."
+    echo "   • Available models: anthropic/claude-sonnet-4-20250514, anthropic/claude-opus-4-1-20250805, openai/gpt-4o, etc."
     echo "   • Use --max-tool-rounds to control execution complexity"
     echo "   • Create .grok/GROK.md for custom project instructions"
     echo "   • Add MCP servers with: grok mcp add server-name"

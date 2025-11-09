@@ -183,7 +183,7 @@ validate_model_override() {
   local model="$1"
   # empty => allowed (router)
   if [ -z "$model" ]; then return 0; fi
-  [[ "$model" =~ ^[a-zA-Z0-9._-]+$ ]]
+  [[ "$model" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]
 }
 
 # ========================
@@ -300,7 +300,7 @@ main() {
 
   if [ -n "$model" ]; then
     if ! validate_model_override "$model"; then
-      log_error "Invalid ADAPTIVE_MODEL: '$model'. Use letters, digits, dot, underscore, or dash."
+      log_error "Invalid ADAPTIVE_MODEL: '$model'. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-0)."
       exit 1
     fi
     log_info "Using custom model: $model"
