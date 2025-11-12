@@ -1,5 +1,9 @@
-from deepeval.contextvars import get_current_golden
-from deepeval.dataset import EvaluationDataset, Golden, ConversationalGolden
+from deepeval.dataset import (
+    EvaluationDataset,
+    Golden,
+    ConversationalGolden,
+    get_current_golden,
+)
 
 
 __all__ = [
