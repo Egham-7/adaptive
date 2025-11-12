@@ -41,6 +41,7 @@ dependencies = [
   "httpx>=0.28.1",
   "methodtools>=0.4.7",
   "uvicorn>=0.38.0",
+  "deepeval>=3.7.0",
 ]
 
 [project.urls]
