@@ -16,8 +16,8 @@ API_BASE_URL="https://api.llmadaptive.uk"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
-# Empty strings enable intelligent model routing for optimal cost/performance
-DEFAULT_MODEL="intelligent-routing"
+# Use adaptive/auto to enable intelligent routing for optimal cost/performance
+DEFAULT_MODEL="adaptive/auto"
 
 # ========================
 #       Utility Functions
@@ -311,8 +311,8 @@ add_env_to_shell_config() {
   fi
 
   log_success "Environment variables added to $config_file"
-  if [ -z "$model" ]; then
-    log_info "GEMINI_MODEL set to empty for intelligent routing (automatic model selection)"
+  if [ "$model" = "$DEFAULT_MODEL" ]; then
+    log_info "GEMINI_MODEL set to adaptive/auto for intelligent routing (automatic model selection)"
   else
     log_info "GEMINI_MODEL set to: $model"
   fi
@@ -326,14 +326,14 @@ add_env_to_shell_config() {
 validate_model_override() {
   local model="$1"
 
-  # Allow empty string for intelligent routing
+  # Empty values fall back to adaptive/auto for backward compatibility
   if [ -z "$model" ]; then
     return 0
   fi
 
   # Validate format: provider/model_id
   if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: provider/model_id (e.g., gemini/gemini-2.5-pro, gemini/gemini-2.5-flash, anthropic/claude-sonnet-4-20250514) or empty string for intelligent routing"
+    log_error "Model format invalid. Use format: provider/model_id (e.g., google/gemini-2-5-pro, anthropic/claude-sonnet-4-5) or use adaptive/auto for intelligent routing"
     return 1
   fi
   return 0
@@ -384,7 +384,7 @@ configure_gemini() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='gemini/gemini-2.5-flash'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='google/gemini-2-5-pro'  # or adaptive/auto for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/gemini-cli.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -393,7 +393,7 @@ configure_gemini() {
     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
     echo "   echo 'export GEMINI_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
     echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api\"' >> ~/.bashrc"
-    echo "   echo 'export GEMINI_MODEL=\"\"' >> ~/.bashrc  # Empty for intelligent routing"
+    echo "   echo 'export GEMINI_MODEL=\"adaptive/auto\"' >> ~/.bashrc  # Set for intelligent routing"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
     exit 1
@@ -496,9 +496,9 @@ main() {
     echo ""
     echo "💡 Pro Tips:"
     echo "   • Your API key is automatically saved to your shell config"
-    echo "   • GEMINI_MODEL set to empty for intelligent routing (optimal cost/performance)"
-    echo "   • Set GEMINI_MODEL='gemini/gemini-2.5-flash' to override with specific model"
-    echo "   • Use provider/model_id format (e.g., gemini/gemini-2.5-pro, anthropic/claude-sonnet-4-20250514)"
+    echo "   • GEMINI_MODEL set to adaptive/auto for intelligent routing (optimal cost/performance)"
+    echo "   • Set GEMINI_MODEL='google/gemini-2-5-pro' to override with a specific model"
+    echo "   • Use provider/model_id format (e.g., google/gemini-2-5-pro, anthropic/claude-sonnet-4-5)"
     echo "   • Access to Anthropic Claude, OpenAI, and other providers via Adaptive routing"
     echo ""
     echo "🔄 Load Balancing & Fallbacks:"
@@ -517,7 +517,7 @@ main() {
     echo "   Expected variables:"
     echo '   export GEMINI_API_KEY="your-adaptive-api-key"'
     echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api"'
-    echo '   export GEMINI_MODEL=""  # Empty for intelligent routing'
+    echo '   export GEMINI_MODEL="adaptive/auto"  # Intelligent routing'
     echo ""
     echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
     exit 1
