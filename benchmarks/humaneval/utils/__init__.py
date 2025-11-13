@@ -1,9 +1,14 @@
 """
 Utility modules for HumanEval benchmarking.
 
-This module exports utilities for response parsing, result tracking, and reporting.
+This module exports utilities for response parsing, result tracking, reporting, and validation.
 """
 
+from .pass_at_k import (
+    calculate_overall_pass_at_k,
+    calculate_pass_at_k,
+    extract_task_results_from_benchmark,
+)
 from .reporting import (
     compare_benchmarks,
     generate_cost_breakdown,
@@ -21,6 +26,12 @@ from .response_parser import (
     parse_openai_response,
 )
 from .result_tracker import BenchmarkRun, ResultTracker
+from .validators import (
+    ValidationError,
+    validate_benchmark_run,
+    validate_response_metrics,
+    validate_task_metrics,
+)
 
 __all__ = [
     # Response parsing
@@ -40,4 +51,13 @@ __all__ = [
     "compare_benchmarks",
     "generate_cost_breakdown",
     "print_console_summary",
+    # Validation
+    "ValidationError",
+    "validate_response_metrics",
+    "validate_task_metrics",
+    "validate_benchmark_run",
+    # Pass@k calculation (workaround for DeepEval pandas bug)
+    "calculate_pass_at_k",
+    "calculate_overall_pass_at_k",
+    "extract_task_results_from_benchmark",
 ]

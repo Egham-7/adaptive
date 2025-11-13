@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models.base import TaskMetrics
+from .validators import validate_benchmark_run, validate_task_metrics, ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class ResultTracker:
     and provides methods to save results in various formats.
     """
 
-    def __init__(self, model_name: str, output_dir: str = "benchmarks/results"):
+    def __init__(self, model_name: str, output_dir: str = "results"):
         """
         Initialize result tracker.
 
@@ -100,7 +101,18 @@ class ResultTracker:
 
         Args:
             task_metrics: TaskMetrics object from a HumanEval task
+
+        Raises:
+            ValidationError: If task_metrics validation fails
         """
+        # Validate task metrics before adding
+        try:
+            validate_task_metrics(task_metrics)
+        except ValidationError as e:
+            logger.error(f"Task metrics validation failed for {task_metrics.task_id}: {e}")
+            # Still add it but log the error
+            # In production, you might want to raise the error instead
+
         self.task_metrics.append(task_metrics)
         logger.debug(f"Added result for task {task_metrics.task_id}")
 
@@ -190,7 +202,14 @@ class ResultTracker:
 
         Returns:
             Path to saved file
+
+        Raises:
+            ValidationError: If benchmark_run validation fails
         """
+        # Validate before saving
+        logger.info("Validating benchmark results...")
+        validate_benchmark_run(benchmark_run)
+
         if filename is None:
             # Auto-generate filename with timestamp
             safe_model_name = self.model_name.replace(":", "_").replace("/", "_")

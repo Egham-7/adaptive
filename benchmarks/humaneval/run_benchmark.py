@@ -28,7 +28,9 @@ from humaneval.config import BenchmarkSettings
 from humaneval.models import AdaptiveForDeepEval, ClaudeForDeepEval, GLMForDeepEval
 from humaneval.utils import (
     ResultTracker,
+    calculate_overall_pass_at_k,
     compare_benchmarks,
+    extract_task_results_from_benchmark,
     generate_markdown_report,
     print_console_summary,
 )
@@ -77,10 +79,44 @@ def run_claude_benchmark(quick: bool = False):
         k = settings.humaneval.k_value
 
     # Run evaluation
-    benchmark.evaluate(model=model, k=k)
+    logger.info("Running benchmark evaluation...")
+    overall_score = 0.0
+    try:
+        benchmark.evaluate(model=model, k=k)
+        # Try to get overall_score - it may be available even if evaluate() throws error later
+        if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+            overall_score = benchmark.overall_score
+            logger.info(f"Benchmark complete: pass@{k} = {overall_score:.4f}")
+    except (ValueError, AssertionError) as e:
+        # DeepEval has a pandas DataFrame bug in some versions
+        # The evaluation completes but crashes during DataFrame creation
+        # But the overall_score is already calculated before the crash
+        if "columns passed" in str(e) or "DataFrame" in str(e):
+            logger.warning(f"DeepEval DataFrame error (known bug): {e}")
+
+            # First try: check if overall_score was set before the error
+            if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+                overall_score = benchmark.overall_score
+                logger.info(f"✓ Successfully retrieved pass@{k} = {overall_score:.4f} from benchmark object")
+            else:
+                # Fallback: extract results manually
+                logger.info("Falling back to manual pass@k calculation...")
+                try:
+                    task_results = extract_task_results_from_benchmark(benchmark)
+                    if task_results:
+                        overall_score = calculate_overall_pass_at_k(task_results, k)
+                        logger.info(f"✓ Manually calculated pass@{k} = {overall_score:.4f}")
+                    else:
+                        logger.error("Could not extract test results from benchmark")
+                        overall_score = 0.0
+                except Exception as calc_error:
+                    logger.error(f"Manual pass@k calculation failed: {calc_error}")
+                    overall_score = 0.0
+        else:
+            # Some other error - re-raise it
+            raise
 
     # Process results
-    overall_score = benchmark.overall_score
     all_task_metrics = model.get_all_task_metrics()
 
     for task_metrics in all_task_metrics:
@@ -141,10 +177,44 @@ def run_glm_benchmark(quick: bool = False):
         k = settings.humaneval.k_value
 
     # Run evaluation
-    benchmark.evaluate(model=model, k=k)
+    logger.info("Running benchmark evaluation...")
+    overall_score = 0.0
+    try:
+        benchmark.evaluate(model=model, k=k)
+        # Try to get overall_score - it may be available even if evaluate() throws error later
+        if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+            overall_score = benchmark.overall_score
+            logger.info(f"Benchmark complete: pass@{k} = {overall_score:.4f}")
+    except (ValueError, AssertionError) as e:
+        # DeepEval has a pandas DataFrame bug in some versions
+        # The evaluation completes but crashes during DataFrame creation
+        # But the overall_score is already calculated before the crash
+        if "columns passed" in str(e) or "DataFrame" in str(e):
+            logger.warning(f"DeepEval DataFrame error (known bug): {e}")
+
+            # First try: check if overall_score was set before the error
+            if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+                overall_score = benchmark.overall_score
+                logger.info(f"✓ Successfully retrieved pass@{k} = {overall_score:.4f} from benchmark object")
+            else:
+                # Fallback: extract results manually
+                logger.info("Falling back to manual pass@k calculation...")
+                try:
+                    task_results = extract_task_results_from_benchmark(benchmark)
+                    if task_results:
+                        overall_score = calculate_overall_pass_at_k(task_results, k)
+                        logger.info(f"✓ Manually calculated pass@{k} = {overall_score:.4f}")
+                    else:
+                        logger.error("Could not extract test results from benchmark")
+                        overall_score = 0.0
+                except Exception as calc_error:
+                    logger.error(f"Manual pass@k calculation failed: {calc_error}")
+                    overall_score = 0.0
+        else:
+            # Some other error - re-raise it
+            raise
 
     # Process results
-    overall_score = benchmark.overall_score
     all_task_metrics = model.get_all_task_metrics()
 
     for task_metrics in all_task_metrics:
@@ -206,10 +276,44 @@ def run_adaptive_benchmark(quick: bool = False):
         k = settings.humaneval.k_value
 
     # Run evaluation
-    benchmark.evaluate(model=model, k=k)
+    logger.info("Running benchmark evaluation...")
+    overall_score = 0.0
+    try:
+        benchmark.evaluate(model=model, k=k)
+        # Try to get overall_score - it may be available even if evaluate() throws error later
+        if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+            overall_score = benchmark.overall_score
+            logger.info(f"Benchmark complete: pass@{k} = {overall_score:.4f}")
+    except (ValueError, AssertionError) as e:
+        # DeepEval has a pandas DataFrame bug in some versions
+        # The evaluation completes but crashes during DataFrame creation
+        # But the overall_score is already calculated before the crash
+        if "columns passed" in str(e) or "DataFrame" in str(e):
+            logger.warning(f"DeepEval DataFrame error (known bug): {e}")
+
+            # First try: check if overall_score was set before the error
+            if hasattr(benchmark, 'overall_score') and benchmark.overall_score is not None:
+                overall_score = benchmark.overall_score
+                logger.info(f"✓ Successfully retrieved pass@{k} = {overall_score:.4f} from benchmark object")
+            else:
+                # Fallback: extract results manually
+                logger.info("Falling back to manual pass@k calculation...")
+                try:
+                    task_results = extract_task_results_from_benchmark(benchmark)
+                    if task_results:
+                        overall_score = calculate_overall_pass_at_k(task_results, k)
+                        logger.info(f"✓ Manually calculated pass@{k} = {overall_score:.4f}")
+                    else:
+                        logger.error("Could not extract test results from benchmark")
+                        overall_score = 0.0
+                except Exception as calc_error:
+                    logger.error(f"Manual pass@k calculation failed: {calc_error}")
+                    overall_score = 0.0
+        else:
+            # Some other error - re-raise it
+            raise
 
     # Process results
-    overall_score = benchmark.overall_score
     all_task_metrics = model.get_all_task_metrics()
     model_selection_stats = model.get_model_selection_stats()
 

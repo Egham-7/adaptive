@@ -28,11 +28,10 @@ class HumanEvalConfig:
 
     # Execution settings
     parallel: bool = True
-    max_concurrent_tasks: int = 20
-    use_cache: bool = False
+    max_concurrent_tasks: int = 10
 
     # Results storage
-    results_folder: str = "benchmarks/results"
+    results_folder: str = "results"
 
     # Retry configuration
     retry_max_attempts: int = 3
@@ -47,9 +46,8 @@ class HumanEvalConfig:
             n_samples=int(os.getenv("HUMANEVAL_N_SAMPLES", "200")),
             k_value=int(os.getenv("HUMANEVAL_K_VALUE", "10")),
             parallel=os.getenv("BENCHMARK_PARALLEL", "true").lower() == "true",
-            max_concurrent_tasks=int(os.getenv("MAX_CONCURRENT_TASKS", "20")),
-            use_cache=os.getenv("USE_CACHE", "false").lower() == "true",
-            results_folder=os.getenv("DEEPEVAL_RESULTS_FOLDER", "benchmarks/results"),
+            max_concurrent_tasks=int(os.getenv("MAX_CONCURRENT_TASKS", "10")),
+            results_folder=os.getenv("DEEPEVAL_RESULTS_FOLDER", "results"),
             retry_max_attempts=int(os.getenv("RETRY_MAX_ATTEMPTS", "3")),
             retry_initial_seconds=float(os.getenv("RETRY_INITIAL_SECONDS", "1.0")),
             retry_exp_base=float(os.getenv("RETRY_EXP_BASE", "2.0")),
@@ -128,7 +126,7 @@ class AdaptiveConfig:
         if self.models is None:
             self.models = [
                 "anthropic:claude-sonnet-4-5-20250929",
-                "zai:glm-4.6",
+                "z-ai:glm-4.6",
             ]
 
     @classmethod

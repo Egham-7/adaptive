@@ -27,7 +27,7 @@ class AdaptiveModel(BaseHumanEvalModel):
 
     DEFAULT_MODELS = [
         "anthropic:claude-sonnet-4-5-20250929",
-        "zai:glm-4.6",
+        "z-ai:glm-4.6",
     ]
 
     def __init__(
@@ -100,7 +100,7 @@ class AdaptiveModel(BaseHumanEvalModel):
                 extra_body={
                     "model_router": {
                         "models": self.models,
-                        "cost_bias": self.cost_bias,
+                        "cost_bias": self.cost_bias
                     }
                 },
             )

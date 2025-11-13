@@ -23,15 +23,18 @@ class PricingCalculator:
     cost information. Pricing may change, so direct API costs are preferred.
     """
 
-    # Pricing per 1M tokens (input, output) - UPDATE THESE AS NEEDED
+    # Pricing per 1M tokens (input, output) - No cache pricing
     PRICING = {
+        # Claude models (no cache)
         "claude-sonnet-4-5": (3.00, 15.00),  # $3/$15 per 1M tokens
         "claude-3-5-sonnet-20241022": (3.00, 15.00),
+        "claude-haiku-4-5": (0.80, 4.00),  # $0.80/$4.00 per 1M tokens
+        # OpenAI models
         "gpt-4": (10.00, 30.00),
         "gpt-4-turbo": (10.00, 30.00),
         "gpt-3.5-turbo": (0.50, 1.50),
-        # Add GLM and other models as needed
-        "glm-4.6": (1.00, 1.00),  # Placeholder - update with actual pricing
+        # GLM models (ZAI API, no cache)
+        "glm-4.6": (0.60, 2.20),  # $0.6/$2.2 per 1M tokens
     }
 
     @classmethod
