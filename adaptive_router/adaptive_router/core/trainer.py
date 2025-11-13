@@ -8,7 +8,6 @@ import asyncio
 import json
 import logging
 import time
-from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -34,6 +33,7 @@ from adaptive_router.core.cluster_engine import ClusterEngine
 from adaptive_router.models.api import Model
 from adaptive_router.models.storage import (
     ClusterCentersData,
+    MinIOSettings,
     ProfileMetadata,
     RouterProfile,
     ScalerParameters,
@@ -74,7 +74,9 @@ class Trainer:
     2. Clustering with ClusterEngine
     3. Optional parallel model inference
     4. Binary correctness evaluation
-    5. Profile generation and saving
+    5. Profile generation
+
+    Training and saving are separate operations for flexibility.
 
     Example:
         >>> from adaptive_router import Trainer, Model, ProviderConfig
@@ -87,6 +89,8 @@ class Trainer:
         ... }
         >>> trainer = Trainer(models=models, provider_configs=provider_configs)
         >>> result = trainer.train_from_csv("data.csv", "question", "answer")
+        >>> trainer.save_profile("profile.json")  # Save locally
+        >>> trainer.save_profile("s3://bucket/profile.json", s3_settings=config)
     """
 
     def __init__(
@@ -94,7 +98,6 @@ class Trainer:
         models: list[Model],
         provider_configs: dict[str, ProviderConfig],
         n_clusters: int = 20,
-        output_path: str | None = None,
         max_parallel: int = 10,
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features: int = 5000,
@@ -108,7 +111,6 @@ class Trainer:
             provider_configs: Provider configurations (API keys, base URLs)
                 Keys must match model providers
             n_clusters: Number of clusters for K-means
-            output_path: Path to save trained profile (default: profile.json)
             max_parallel: Maximum parallel inference requests
             embedding_model: Sentence transformer model name
             tfidf_max_features: TF-IDF vocabulary size
@@ -121,12 +123,14 @@ class Trainer:
         self.models = models
         self.provider_configs = provider_configs
         self.n_clusters = n_clusters
-        self.output_path = output_path or "profile.json"
         self.max_parallel = max_parallel
         self.embedding_model = embedding_model
         self.tfidf_max_features = tfidf_max_features
         self.tfidf_ngram_range = tfidf_ngram_range
         self.random_seed = random_seed
+
+        # Trained profile (set after training)
+        self._trained_profile: RouterProfile | None = None
 
         # Validate provider configs cover all model providers
         model_providers = {m.provider for m in models}
@@ -169,7 +173,7 @@ class Trainer:
                 If None, will run inference on all models
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
 
         Raises:
             FileNotFoundError: If CSV file doesn't exist
@@ -197,7 +201,7 @@ class Trainer:
             actual_output_column: Optional column with pre-computed model outputs
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
 
         Raises:
             FileNotFoundError: If JSON file doesn't exist
@@ -226,7 +230,7 @@ class Trainer:
             actual_output_column: Optional column with pre-computed model outputs
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
 
         Raises:
             KeyError: If specified columns don't exist
@@ -277,7 +281,7 @@ class Trainer:
             actual_output_column: Optional column with pre-computed model outputs
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
 
         Raises:
             KeyError: If specified columns don't exist in DataFrame
@@ -300,14 +304,17 @@ class Trainer:
 
         return self._train(inputs, expected, actuals)
 
-    def train_from_goldens(self, goldens: list[Golden]) -> TrainingResult:
+    def train_from_goldens(
+        self,
+        goldens: list[Golden],
+    ) -> TrainingResult:
         """Train from DeepEval Golden objects.
 
         Args:
             goldens: List of DeepEval Golden objects
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
         """
         logger.info(f"Loading training data from {len(goldens)} Golden objects")
 
@@ -345,7 +352,7 @@ class Trainer:
             actual_output_column: Optional column with pre-computed outputs
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
 
         Raises:
             ImportError: If datasets library not installed
@@ -376,7 +383,7 @@ class Trainer:
                 If None or if any row is missing, will run inference
 
         Returns:
-            TrainingResult with profile path and metrics
+            TrainingResult with training metrics
         """
         start_time = time.time()
 
@@ -417,11 +424,11 @@ class Trainer:
         )
         logger.info("✓ Error rates computed")
 
-        # Phase 4: Build and save profile
-        logger.info("\n[4/4] Building and saving profile...")
+        # Phase 4: Build profile
+        logger.info("\n[4/4] Building profile...")
         profile = self._build_profile(cluster_engine, error_rates)
-        profile_path = self._save_profile(profile)
-        logger.info(f"✓ Profile saved to: {profile_path}")
+        self._trained_profile = profile
+        logger.info("✓ Profile built")
 
         training_time = time.time() - start_time
 
@@ -432,7 +439,6 @@ class Trainer:
         ]
 
         result = TrainingResult(
-            profile_path=profile_path,
             n_clusters=self.n_clusters,
             silhouette_score=float(cluster_engine.silhouette),
             n_models=len(self.models),
@@ -448,7 +454,7 @@ class Trainer:
         logger.info("TRAINING COMPLETE")
         logger.info("=" * 60)
         logger.info(f"Total time: {training_time:.1f}s")
-        logger.info(f"Profile: {profile_path}")
+        logger.info("Profile ready for saving")
 
         return result
 
@@ -774,19 +780,48 @@ class Trainer:
             metadata=metadata,
         )
 
-    def _save_profile(self, profile: RouterProfile) -> str:
-        """Save profile to JSON file.
+    def save_profile(
+        self,
+        path: str,
+        minio_settings: MinIOSettings | None = None,
+        s3_settings: MinIOSettings | None = None,
+    ) -> str:
+        """Save trained profile to specified path.
 
         Args:
-            profile: RouterProfile to save
+            path: Destination path (local, s3://, or minio://)
+            minio_settings: MinIO configuration for minio:// URLs
+            s3_settings: S3 configuration for s3:// URLs
 
         Returns:
             Path where profile was saved
+
+        Raises:
+            ValueError: If no profile has been trained yet
         """
-        output_path = Path(self.output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        if self._trained_profile is None:
+            raise ValueError(
+                "No profile has been trained yet. Call a training method first."
+            )
 
-        with open(output_path, "w") as f:
-            json.dump(profile.model_dump(), f, indent=2)
+        from adaptive_router.savers import get_saver
 
-        return str(output_path)
+        # Auto-detect saver based on path
+        saver = get_saver(path, minio_settings=minio_settings, s3_settings=s3_settings)
+        return saver.save_profile(self._trained_profile, path)
+
+    @property
+    def profile(self) -> RouterProfile:
+        """Get the trained profile.
+
+        Returns:
+            Trained RouterProfile
+
+        Raises:
+            ValueError: If no profile has been trained yet
+        """
+        if self._trained_profile is None:
+            raise ValueError(
+                "No profile has been trained yet. Call a training method first."
+            )
+        return self._trained_profile

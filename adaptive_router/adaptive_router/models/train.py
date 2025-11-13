@@ -31,7 +31,6 @@ class TrainingResult(BaseModel):
     """Result from the training process.
 
     Attributes:
-        profile_path: Path where the trained profile was saved
         n_clusters: Number of clusters created
         silhouette_score: Cluster quality metric (higher is better)
         n_models: Number of models included in the profile
@@ -43,7 +42,6 @@ class TrainingResult(BaseModel):
         training_time: Total training time (seconds)
     """
 
-    profile_path: str = Field(..., description="Path where profile was saved")
     n_clusters: int = Field(..., description="Number of clusters", gt=0)
     silhouette_score: float = Field(..., description="Cluster quality score")
     n_models: int = Field(..., description="Number of models trained", gt=0)

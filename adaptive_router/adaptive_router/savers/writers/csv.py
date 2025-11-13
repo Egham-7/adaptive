@@ -5,7 +5,7 @@ import json
 import logging
 from pathlib import Path
 
-from adaptive_router.loaders.writers.base import ProfileWriter
+from adaptive_router.savers.writers.base import ProfileWriter
 from adaptive_router.models.storage import RouterProfile
 
 logger = logging.getLogger(__name__)

@@ -14,7 +14,6 @@ class ProfileReader(ABC):
     """Abstract base class for profile readers.
 
     Supports reading RouterProfiles from various formats.
-    Implementations should handle both file paths and binary streams.
     """
 
     @abstractmethod
@@ -22,14 +21,14 @@ class ProfileReader(ABC):
         """Read profile from file path.
 
         Args:
-            path: Path to profile file
+            path: Source file path
 
         Returns:
             Loaded RouterProfile
 
         Raises:
             FileNotFoundError: If file doesn't exist
-            ValueError: If file format is invalid
+            ValueError: If format is invalid or profile validation fails
         """
         raise NotImplementedError
 
@@ -38,13 +37,13 @@ class ProfileReader(ABC):
         """Read profile from bytes (for MinIO/S3).
 
         Args:
-            data: Raw bytes of profile data
+            data: Raw bytes data
 
         Returns:
             Loaded RouterProfile
 
         Raises:
-            ValueError: If data format is invalid
+            ValueError: If format is invalid or profile validation fails
         """
         raise NotImplementedError
 
@@ -54,6 +53,6 @@ class ProfileReader(ABC):
         """Return list of supported file extensions.
 
         Returns:
-            List of extensions (e.g., ['.json', '.jsonl'])
+            List of extensions (e.g., ['.json'])
         """
         raise NotImplementedError
