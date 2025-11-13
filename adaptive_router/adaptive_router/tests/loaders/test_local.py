@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from adaptive_router.loaders.local import LocalFileProfileLoader
@@ -15,55 +16,90 @@ def valid_profile_data() -> dict:
     return {
         "metadata": {
             "n_clusters": 2,
-            "n_samples": 10,
-            "silhouette_score": 0.45,
-            "created_at": "2024-01-01T00:00:00Z",
-            "model_version": "1.0.0",
             "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
             "tfidf_max_features": 5000,
+            "tfidf_ngram_range": [1, 2],
+            "silhouette_score": 0.45,
         },
         "cluster_centers": {
-            "centers": [[0.1, 0.2], [0.4, 0.5]],
             "n_clusters": 2,
-            "feature_dimension": 2,
+            "feature_dim": 2,
+            "cluster_centers": [[0.1, 0.2], [0.4, 0.5]],
         },
+        "models": [
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "unique_id": "openai:gpt-4",
+                "context_window": 8192,
+                "cost_per_token": 0.00003,
+                "cost_per_1m_input_tokens": 30.0,
+                "cost_per_1m_output_tokens": 60.0,
+            }
+        ],
         "llm_profiles": {
-            "openai:gpt-4": [0.05, 0.03],
-            "anthropic:claude-3-sonnet": [0.07, 0.04],
+            "openai/gpt-4": [0.05, 0.03],
         },
         "tfidf_vocabulary": {
             "vocabulary": {"python": 0, "javascript": 1},
-            "idf_scores": [1.0, 1.2],
+            "idf": [1.0, 1.2],
         },
         "scaler_parameters": {
-            "mean": [0.5, 0.5],
-            "scale": [0.2, 0.2],
-            "n_features": 2,
+            "embedding_scaler": {
+                "mean": [0.5, 0.5],
+                "scale": [0.2, 0.2],
+            },
+            "tfidf_scaler": {
+                "mean": [0.3, 0.3],
+                "scale": [0.1, 0.1],
+            },
         },
     }
 
 
 @pytest.fixture
-def profile_file(tmp_path, valid_profile_data) -> Path:
-    """Create a temporary profile file."""
+def json_profile_file(tmp_path, valid_profile_data) -> Path:
+    """Create a temporary JSON profile file."""
     file_path = tmp_path / "test_profile.json"
     with open(file_path, "w") as f:
         json.dump(valid_profile_data, f)
     return file_path
 
 
+@pytest.fixture
+def csv_profile_file(tmp_path, valid_profile_data) -> Path:
+    """Create a temporary CSV profile file."""
+    file_path = tmp_path / "test_profile.csv"
+    with open(file_path, "w", newline="") as f:
+        import csv
+
+        writer = csv.DictWriter(f, fieldnames=["format", "data"])
+        writer.writeheader()
+        writer.writerow({"format": "json", "data": json.dumps(valid_profile_data)})
+    return file_path
+
+
+@pytest.fixture
+def parquet_profile_file(tmp_path, valid_profile_data) -> Path:
+    """Create a temporary Parquet profile file."""
+    file_path = tmp_path / "test_profile.parquet"
+    df = pd.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
+    df.to_parquet(file_path, index=False)
+    return file_path
+
+
 class TestLocalFileProfileLoaderInitialization:
     """Test LocalFileProfileLoader initialization."""
 
-    def test_initialization_with_valid_path(self, profile_file: Path) -> None:
+    def test_initialization_with_valid_path(self, json_profile_file: Path) -> None:
         """Test loader initializes with valid file path."""
-        loader = LocalFileProfileLoader(profile_file)
-        assert loader.profile_path == profile_file
+        loader = LocalFileProfileLoader(json_profile_file)
+        assert loader.profile_path == json_profile_file
 
-    def test_initialization_with_string_path(self, profile_file: Path) -> None:
+    def test_initialization_with_string_path(self, json_profile_file: Path) -> None:
         """Test loader accepts string path."""
-        loader = LocalFileProfileLoader(str(profile_file))
-        assert loader.profile_path == profile_file
+        loader = LocalFileProfileLoader(str(json_profile_file))
+        assert loader.profile_path == json_profile_file
 
     def test_initialization_with_nonexistent_path(self, tmp_path) -> None:
         """Test loader raises error for nonexistent file."""
@@ -86,7 +122,7 @@ class TestLocalFileProfileLoaderLoadProfile:
             f.write("{invalid json content")
 
         loader = LocalFileProfileLoader(corrupted_file)
-        with pytest.raises(ValueError, match="Corrupted JSON"):
+        with pytest.raises(ValueError, match="Invalid JSON"):
             loader.load_profile()
 
     def test_load_profile_with_invalid_schema(self, tmp_path) -> None:
@@ -103,18 +139,17 @@ class TestLocalFileProfileLoaderLoadProfile:
 class TestLocalFileProfileLoaderHealthCheck:
     """Test LocalFileProfileLoader health_check method."""
 
-    def test_health_check_with_valid_file(self, profile_file: Path) -> None:
+    def test_health_check_with_valid_file(self, json_profile_file: Path) -> None:
         """Test health check returns True for valid file."""
-        loader = LocalFileProfileLoader(profile_file)
+        loader = LocalFileProfileLoader(json_profile_file)
         assert loader.health_check() is True
 
-    def test_health_check_after_file_deletion(self, profile_file: Path) -> None:
+    def test_health_check_after_file_deletion(self, json_profile_file: Path) -> None:
         """Test health check returns False after file deletion."""
-        loader = LocalFileProfileLoader(profile_file)
+        loader = LocalFileProfileLoader(json_profile_file)
         assert loader.health_check() is True
 
-        # Delete the file
-        profile_file.unlink()
+        json_profile_file.unlink()
         assert loader.health_check() is False
 
     def test_health_check_with_directory_path(self, tmp_path) -> None:

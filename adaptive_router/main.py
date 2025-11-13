@@ -165,13 +165,10 @@ async def create_model_router(settings: AppSettings) -> ModelRouter:
         raise ValueError("Profile contains no model IDs")
 
     # Load only the models referenced in the profile
-    models = await load_models_for_profile_async(settings, model_ids)
+    await load_models_for_profile_async(settings, model_ids)
 
     # Create router using the from_profile method
-    router = ModelRouter.from_profile(
-        profile=profile,
-        models=models,
-    )
+    router = ModelRouter.from_profile(profile=profile)
 
     logger.info("ModelRouter created successfully")
 
