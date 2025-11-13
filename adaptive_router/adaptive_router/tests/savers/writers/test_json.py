@@ -29,9 +29,6 @@ def valid_profile_data() -> dict:
             {
                 "provider": "openai",
                 "model_name": "gpt-4",
-                "unique_id": "openai:gpt-4",
-                "context_window": 8192,
-                "cost_per_token": 0.00003,
                 "cost_per_1m_input_tokens": 30.0,
                 "cost_per_1m_output_tokens": 60.0,
             }

@@ -1,5 +1,7 @@
 """Savers registry and factory functions."""
 
+from urllib.parse import urlparse
+
 from adaptive_router.models.storage import MinIOSettings
 
 from .base import ProfileSaver
@@ -39,7 +41,7 @@ def get_saver(
                 "Provide s3_settings parameter."
             )
         return MinIOProfileSaver.from_settings(s3_settings, **kwargs)
-    elif path.startswith("minio://") or "minio" in path.lower():
+    elif urlparse(path).scheme == "minio":
         if minio_settings is None:
             raise ValueError(
                 f"MinIO settings required for MinIO path: {path}. "
