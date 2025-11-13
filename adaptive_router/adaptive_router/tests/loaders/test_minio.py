@@ -26,9 +26,23 @@ def valid_profile_data() -> dict:
             "feature_dim": 2,
             "cluster_centers": [[0.1, 0.2], [0.4, 0.5]],
         },
+        "models": [
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "cost_per_1m_input_tokens": 30.0,
+                "cost_per_1m_output_tokens": 60.0,
+            },
+            {
+                "provider": "anthropic",
+                "model_name": "claude-3-sonnet",
+                "cost_per_1m_input_tokens": 3.0,
+                "cost_per_1m_output_tokens": 15.0,
+            },
+        ],
         "llm_profiles": {
-            "openai:gpt-4": [0.05, 0.03],
-            "anthropic:claude-3-sonnet": [0.07, 0.04],
+            "openai/gpt-4": [0.05, 0.03],
+            "anthropic/claude-3-sonnet": [0.07, 0.04],
         },
         "tfidf_vocabulary": {
             "vocabulary": {"python": 0, "javascript": 1},

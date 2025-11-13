@@ -17,14 +17,13 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from adaptive_router.core.router import ModelRouter
-from adaptive_router.models.api import Model, ModelSelectionRequest
+from adaptive_router.models.api import ModelSelectionRequest
 
 from app.models import (
     ModelSelectionAPIRequest,
 )
 from app.models import (
     RegistryConnectionError,
-    RegistryError,
     RegistryResponseError,
     RegistryClientConfig,
 )
@@ -37,7 +36,6 @@ from app.registry.client import AsyncRegistryClient
 from app.utils import (
     resolve_models,
 )
-from app.utils.model_resolver import _registry_model_to_model
 
 
 env_file = Path(".env")
@@ -63,66 +61,6 @@ def extract_model_ids_from_profile(profile) -> list[str]:
         List of model IDs (e.g., ["openai/gpt-4", "anthropic/claude-3"])
     """
     return list(profile.llm_profiles.keys())
-
-
-async def load_models_for_profile_async(
-    settings: AppSettings, model_ids: list[str]
-) -> list[Model]:
-    """Load specific models from registry asynchronously with exact matching.
-
-    Args:
-        settings: Application settings containing registry configuration
-        model_ids: List of model IDs to fetch (format: "provider/model_name")
-
-    Returns:
-        List of Model objects with cost information
-
-    Raises:
-        ValueError: If registry health check fails or fetch fails
-    """
-    config = RegistryClientConfig(
-        base_url=settings.model_registry_base_url,
-        timeout=settings.model_registry_timeout,
-    )
-    async with httpx.AsyncClient(
-        timeout=settings.model_registry_timeout
-    ) as http_client:
-        client = AsyncRegistryClient(config, http_client)
-        logger.info(
-            "Loading %d models from registry at %s", len(model_ids), config.base_url
-        )
-
-        try:
-            await client.health_check()
-        except (RegistryConnectionError, RegistryResponseError) as err:
-            raise ValueError(f"Model registry health check failed: {err}") from err
-
-        # Load only the specific models requested
-        router_models = []
-        for model_id in model_ids:
-            try:
-                author, model_name = model_id.split("/", 1)
-                registry_model = await client.get_by_author_and_name(author, model_name)
-                if registry_model is None:
-                    logger.warning("Model %s not found in registry", model_id)
-                    continue
-
-                model = _registry_model_to_model(registry_model)
-                if model is not None:
-                    router_models.append(model)
-                else:
-                    logger.warning("Model %s has invalid/missing pricing", model_id)
-
-            except (ValueError, RegistryError) as err:
-                logger.warning("Failed to load model %s: %s", model_id, err)
-                continue
-
-        logger.info(
-            "Loaded %d/%d models from registry",
-            len(router_models),
-            len(model_ids),
-        )
-        return router_models
 
 
 # Inlined from model_router_factory.py
@@ -159,19 +97,8 @@ async def create_model_router(settings: AppSettings) -> ModelRouter:
     loader = MinIOProfileLoader.from_settings(minio_settings)
     profile = loader.load_profile()
 
-    # Extract model IDs from the profile
-    model_ids = extract_model_ids_from_profile(profile)
-    if not model_ids:
-        raise ValueError("Profile contains no model IDs")
-
-    # Load only the models referenced in the profile
-    models = await load_models_for_profile_async(settings, model_ids)
-
     # Create router using the from_profile method
-    router = ModelRouter.from_profile(
-        profile=profile,
-        models=models,
-    )
+    router = ModelRouter.from_profile(profile=profile)
 
     logger.info("ModelRouter created successfully")
 

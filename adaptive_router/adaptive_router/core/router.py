@@ -9,15 +9,17 @@ and response conversion.
 
 from __future__ import annotations
 
+import heapq
 import logging
 import time
 import warnings
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
+from sklearn.cluster import KMeans
 
 from adaptive_router.loaders.local import LocalFileProfileLoader
 from adaptive_router.loaders.minio import MinIOProfileLoader
@@ -58,18 +60,20 @@ class ModelRouter:
 
     def __init__(
         self,
-        profile: RouterProfile,
-        models: List[Model],
+        profile: str | Path | dict[str, Any] | RouterProfile,
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
         allow_trust_remote_code: bool = False,
     ) -> None:
-        """Initialize ModelRouter with injected dependencies.
+        """Initialize ModelRouter from profile.
 
         Args:
-            profile: RouterProfile with cluster data and error rates per model
-            models: List of Model objects with cost information
+            profile: Router profile as:
+                - str/Path: Local file path or S3 URL (s3://bucket/key)
+                - dict: Profile dictionary
+                - RouterProfile: Profile object
+                Models are loaded from the profile automatically.
             lambda_min: Minimum lambda value for cost-quality tradeoff (default: 0.0)
             lambda_max: Maximum lambda value for cost-quality tradeoff (default: 2.0)
             default_cost_preference: Default cost preference when not specified (default: 0.5)
@@ -81,8 +85,19 @@ class ModelRouter:
         Raises:
             ModelNotFoundError: If models don't match profile.llm_profiles
         """
+        # Load profile internally
+        profile = self._load_profile(profile)
+
+        # Get models from profile
+        models = profile.models
+
+        # Validate model IDs
+        self._validate_model_ids(models)
+
         n_clusters = profile.metadata.n_clusters
-        logger.info(f"Initializing ModelRouter with {n_clusters} clusters")
+        logger.info(
+            f"Initializing ModelRouter with {n_clusters} clusters and {len(models)} models"
+        )
 
         if allow_trust_remote_code:
             logger.warning(
@@ -99,26 +114,25 @@ class ModelRouter:
             f"silhouette score: {profile.metadata.silhouette_score or 'N/A'}"
         )
 
-        # Create mapping from model_id to cost
-        model_costs: Dict[str, float] = {}
-        for model in models:
-            model_id = model.unique_id()
-            model_costs[model_id] = model.cost_per_1m_tokens
+        # Create mapping from model_id to cost and model object (O(N) single pass)
+        model_costs: dict[str, float] = {
+            model.unique_id(): model.cost_per_1m_tokens for model in models
+        }
+        model_lookup: dict[str, Model] = {model.unique_id(): model for model in models}
 
-        self.model_features: Dict[str, ModelFeatureVector] = {}
+        self.model_features: dict[str, ModelFeatureVector] = {}
 
         for model_id, error_rates in profile.llm_profiles.items():
             if model_id not in model_costs:
                 logger.warning(f"Model {model_id} missing cost data, skipping")
                 continue
 
-            # Extract input and output costs from the model
-            matching_models = [m for m in models if m.unique_id() == model_id]
-            if not matching_models:
+            # Extract input and output costs from the model (O(1) dict lookup)
+            model = model_lookup.get(model_id)
+            if model is None:
                 logger.warning(f"Model {model_id} not found in models list, skipping")
                 continue
 
-            model = matching_models[0]
             self.model_features[model_id] = ModelFeatureVector(
                 error_rates=error_rates,
                 cost_per_1m_input_tokens=model.cost_per_1m_input_tokens,
@@ -144,11 +158,71 @@ class ModelRouter:
         """Cache cost range calculation for performance."""
         return self.max_cost - self.min_cost
 
-        logger.info(
-            f"ModelRouter initialized with {len(self.model_features)} models, "
-            f"K={self.cluster_engine.n_clusters} clusters, "
-            f"lambda range [{self.lambda_min}, {self.lambda_max}]"
-        )
+    @staticmethod
+    def _get_device() -> str:
+        """Determine the appropriate device for model loading.
+
+        Returns:
+            Device string: 'cpu' for macOS, 'cuda' if available, otherwise 'cpu'
+        """
+        import platform
+        import torch
+
+        if platform.system() == "Darwin":
+            return "cpu"
+        return "cuda" if torch.cuda.is_available() else "cpu"
+
+    def _validate_model_ids(self, models: list[Model]) -> None:
+        """Validate model IDs during initialization.
+
+        Args:
+            models: List of models to validate
+
+        Raises:
+            InvalidModelFormatError: If any model ID is invalid
+        """
+        import re
+
+        pattern = re.compile(r"^[\w-]+/[\w.-]+$")
+
+        for model in models:
+            model_id = model.unique_id()
+            if not pattern.match(model_id):
+                raise InvalidModelFormatError(
+                    f"Invalid model ID format: {model_id}. "
+                    f"Expected format: 'provider/model_name' (e.g., 'openai/gpt-4')"
+                )
+
+    def _load_profile(
+        self, profile: str | Path | dict[str, Any] | RouterProfile
+    ) -> RouterProfile:
+        """Load profile from various sources.
+
+        Args:
+            profile: Profile as path (str/Path), dict, or RouterProfile object
+
+        Returns:
+            Loaded RouterProfile
+
+        Raises:
+            FileNotFoundError: If profile file doesn't exist
+            ValueError: If profile format is invalid
+        """
+        # If already a RouterProfile, return it
+        if isinstance(profile, RouterProfile):
+            logger.debug("Profile already loaded")
+            return profile
+
+        # If dict, parse as RouterProfile
+        if isinstance(profile, dict):
+            logger.debug("Loading profile from dict")
+            return RouterProfile(**profile)
+
+        # If str or Path, load from local file
+        # (S3/MinIO profiles should be loaded before passing to router)
+        logger.info(f"Loading profile from local file: {profile}")
+        loader = LocalFileProfileLoader(str(profile))
+        return loader.load_profile()
 
     def _build_cluster_engine_from_data(
         self,
@@ -193,15 +267,9 @@ class ModelRouter:
         Returns:
             Configured SentenceTransformer model
         """
-        import platform
-        import torch
 
-        # Determine device (CPU for macOS, CUDA if available otherwise)
-        device = (
-            "cpu"
-            if platform.system() == "Darwin"
-            else "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        # Determine device
+        device = self._get_device()
         logger.info(f"Loading embedding model on device: {device}")
 
         # Suppress the clean_up_tokenization_spaces warning during model loading
@@ -303,14 +371,20 @@ class ModelRouter:
         Returns:
             Configured ClusterEngine
         """
-        # Create ClusterEngine
-        cluster_engine = ClusterEngine(
-            n_clusters=profile.cluster_centers.n_clusters,
-            embedding_model=profile.metadata.embedding_model,
-            tfidf_max_features=profile.metadata.tfidf_max_features,
-            tfidf_ngram_range=tuple(profile.metadata.tfidf_ngram_range),  # type: ignore[arg-type]
-        )
+        # Create empty ClusterEngine (no heavyweight initialization)
+        cluster_engine = ClusterEngine()
+
+        # Set configuration from profile
+        cluster_engine.n_clusters = profile.cluster_centers.n_clusters
+        cluster_engine.embedding_model = profile.metadata.embedding_model
+        cluster_engine.tfidf_max_features = profile.metadata.tfidf_max_features
+        # Convert list to tuple[int, int] for type safety
+        ngram_range = profile.metadata.tfidf_ngram_range
+        cluster_engine.tfidf_ngram_range = (int(ngram_range[0]), int(ngram_range[1]))
+
+        # Set restored components
         cluster_engine.feature_extractor = feature_extractor
+        cluster_engine.kmeans = KMeans(n_clusters=profile.cluster_centers.n_clusters)
 
         # Restore K-means cluster centers
         cluster_engine.kmeans.cluster_centers_ = np.array(
@@ -324,6 +398,7 @@ class ModelRouter:
         )
 
         cluster_engine.silhouette = profile.metadata.silhouette_score or 0.0
+        cluster_engine._is_fitted = True  # Mark as fitted
 
         logger.info(
             f"Built cluster engine from storage data: {profile.cluster_centers.n_clusters} clusters, "
@@ -363,7 +438,7 @@ class ModelRouter:
         start_time = time.time()
 
         # Extract and validate allowed models if provided
-        allowed_model_ids: Optional[List[str]] = None
+        allowed_model_ids: list[str] | None = None
         if request.models:
             allowed_model_ids = self._filter_models_by_request(request.models)
 
@@ -381,7 +456,7 @@ class ModelRouter:
 
         # Route the question - all routing logic inline now
         # 1. Assign to cluster
-        cluster_id, distance = self.cluster_engine.assign_question(request.prompt)
+        cluster_id, _ = self.cluster_engine.assign_question(request.prompt)
 
         # 2. Calculate lambda parameter
         lambda_param = self._calculate_lambda(cost_preference)
@@ -405,27 +480,37 @@ class ModelRouter:
             # Use all available models
             models_to_score = self.model_features
 
-        # 4. Compute routing scores for each model
-        model_scores: Dict[str, ModelScore] = {}
+        # 4. Compute routing scores and select top models (optimized with heap)
+        # Use heap to track best model and top 3 alternatives without creating all ModelScore objects
+        scored_models: list[tuple[float, str, ModelScore]] = []
 
         for model_id, features in models_to_score.items():
             error_rate = features.error_rates[cluster_id]
             cost = features.cost_per_1m_tokens
-
             normalized_cost = self._normalize_cost(cost)
             score = error_rate + lambda_param * normalized_cost
 
-            model_scores[model_id] = ModelScore(
-                score=score,
-                error_rate=error_rate,
-                accuracy=1.0 - error_rate,
-                cost=cost,
-                normalized_cost=normalized_cost,
+            # Push to heap: (score, model_id, ModelScore)
+            # We need top 4 (1 best + 3 alternatives)
+            heapq.heappush(
+                scored_models,
+                (
+                    score,
+                    model_id,
+                    ModelScore(
+                        score=score,
+                        error_rate=error_rate,
+                        accuracy=1.0 - error_rate,
+                        cost=cost,
+                        normalized_cost=normalized_cost,
+                    ),
+                ),
             )
 
-        # 5. Select best model (lowest score)
-        best_model_id = min(model_scores, key=lambda k: model_scores[k].score)
-        best_scores = model_scores[best_model_id]
+        # 5. Select best model and alternatives (get 4 smallest)
+        top_models = heapq.nsmallest(4, scored_models, key=lambda x: x[0])
+
+        _, best_model_id, best_scores = top_models[0]
 
         routing_time = (time.time() - start_time) * 1000
 
@@ -437,37 +522,24 @@ class ModelRouter:
             selected_scores=best_scores,
         )
 
-        # Prepare alternatives
-        alternatives: List[AlternativeScore] = [
+        # Prepare alternatives (next 3 best models)
+        alternatives: list[AlternativeScore] = [
             AlternativeScore(
-                model_id=mid,
-                score=scores.score,
-                accuracy=scores.accuracy,
-                cost=scores.cost,
+                model_id=model_id,
+                score=model_score.score,
+                accuracy=model_score.accuracy,
+                cost=model_score.cost,
             )
-            for mid, scores in sorted(model_scores.items(), key=lambda x: x[1].score)
-            if mid != best_model_id
+            for _, model_id, model_score in top_models[1:4]  # Skip best, take next 3
         ]
 
-        # Parse model ID to extract provider and model name
-        if "/" not in best_model_id:
-            raise InvalidModelFormatError(
-                f"Invalid model ID format: {best_model_id}. "
-                f"Expected format: 'provider/model_name' (e.g., 'openai/gpt-4')"
-            )
+        # Parse model ID to extract provider and model name (already validated in init)
+        best_model_id.split("/", 1)
 
-        selected_model_parts = best_model_id.split("/", 1)
-        if len(selected_model_parts) != 2 or not all(selected_model_parts):
-            raise InvalidModelFormatError(
-                f"Invalid model ID format: {best_model_id}. "
-                f"Both provider and model_name must be non-empty. "
-                f"Expected format: 'provider/model_name'"
-            )
-
-        # Convert alternatives to Alternative objects
-        alternatives_list = []
-        for alt in alternatives[:3]:  # Limit to top 3 alternatives
-            alternatives_list.append(Alternative(model_id=alt.model_id))
+        # Convert alternatives to Alternative objects (using list comprehension)
+        alternatives_list = [
+            Alternative(model_id=alt.model_id) for alt in alternatives[:3]
+        ]
 
         # Convert to ModelSelectionResponse
         response = ModelSelectionResponse(
@@ -516,7 +588,6 @@ class ModelRouter:
     def from_profile(
         cls,
         profile: RouterProfile,
-        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -524,7 +595,6 @@ class ModelRouter:
     ) -> ModelRouter:
         return cls(
             profile=profile,
-            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
@@ -535,7 +605,6 @@ class ModelRouter:
     def from_minio(
         cls,
         settings: MinIOSettings,
-        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -545,7 +614,6 @@ class ModelRouter:
         profile = loader.load_profile()
         return cls.from_profile(
             profile=profile,
-            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
@@ -556,7 +624,6 @@ class ModelRouter:
     def from_local_file(
         cls,
         profile_path: str | Path,
-        models: List[Model],
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
@@ -566,14 +633,13 @@ class ModelRouter:
         profile = loader.load_profile()
         return cls.from_profile(
             profile=profile,
-            models=models,
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
             allow_trust_remote_code=allow_trust_remote_code,
         )
 
-    def _filter_models_by_request(self, models: List[Model]) -> Optional[List[str]]:
+    def _filter_models_by_request(self, models: list[Model]) -> list[str] | None:
         """Filter supported models based on request model specifications.
 
         This method provides a scalable filtering mechanism that can handle:
@@ -648,14 +714,9 @@ class ModelRouter:
         #     ]
         #     allowed_model_ids.extend(cost_filtered)
 
-        # Remove duplicates while preserving order
+        # Remove duplicates while preserving order (using dict.fromkeys)
         if allowed_model_ids:
-            seen = set()
-            unique_models = []
-            for model_id in allowed_model_ids:
-                if model_id not in seen:
-                    seen.add(model_id)
-                    unique_models.append(model_id)
+            unique_models = list(dict.fromkeys(allowed_model_ids))
 
             # Ensure we have at least one model after filtering
             if not unique_models:
@@ -741,7 +802,7 @@ class ModelRouter:
 
         return "; ".join(parts)
 
-    def get_supported_models(self) -> List[str]:
+    def get_supported_models(self) -> list[str]:
         """Get list of models this router supports.
 
         Returns:
@@ -749,13 +810,14 @@ class ModelRouter:
         """
         return list(self.model_features.keys())
 
-    def get_cluster_info(self) -> Dict[str, Any]:
+    def get_cluster_info(self) -> dict[str, Any]:
         """Get information about loaded clusters.
 
         Returns:
             Dictionary with cluster statistics including n_clusters,
             embedding_model, supported_models, and lambda parameters
         """
+        assert self.cluster_engine.feature_extractor is not None  # For mypy
         return {
             "n_clusters": self.cluster_engine.n_clusters,
             "embedding_model": self.cluster_engine.feature_extractor.embedding_model_name,

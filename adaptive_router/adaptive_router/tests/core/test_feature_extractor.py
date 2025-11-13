@@ -5,58 +5,17 @@ import pytest
 
 from adaptive_router.core import FeatureExtractor
 from adaptive_router.exceptions.core import FeatureExtractionError
-from adaptive_router.models import CodeQuestion
 
 
 @pytest.fixture
-def sample_questions() -> list[CodeQuestion]:
+def sample_questions() -> list[str]:
     """Create sample code questions for testing."""
     return [
-        CodeQuestion(
-            question_id="q1",
-            question="How do I sort a list in Python?",
-            choices=["A) sorted()", "B) sort()", "C) order()", "D) arrange()"],
-            answer="A",
-        ),
-        CodeQuestion(
-            question_id="q2",
-            question="What is a lambda function?",
-            choices=[
-                "A) Anonymous function",
-                "B) Named function",
-                "C) Class method",
-                "D) Built-in",
-            ],
-            answer="A",
-        ),
-        CodeQuestion(
-            question_id="q3",
-            question="How to reverse a string in JavaScript?",
-            choices=[
-                "A) reverse()",
-                "B) split().reverse().join()",
-                "C) backwards()",
-                "D) flip()",
-            ],
-            answer="B",
-        ),
-        CodeQuestion(
-            question_id="q4",
-            question="Explain async/await in Python",
-            choices=[
-                "A) Async/await syntax",
-                "B) Threading",
-                "C) Multiprocessing",
-                "D) Synchronous",
-            ],
-            answer="A",
-        ),
-        CodeQuestion(
-            question_id="q5",
-            question="How to use map in JavaScript?",
-            choices=["A) map()", "B) forEach()", "C) filter()", "D) reduce()"],
-            answer="A",
-        ),
+        "How do I sort a list in Python?",
+        "What is a lambda function?",
+        "How to reverse a string in JavaScript?",
+        "Explain async/await in Python",
+        "How to use map in JavaScript?",
     ]
 
 
@@ -96,7 +55,7 @@ class TestFeatureExtractorFit:
     """Test FeatureExtractor fitting."""
 
     def test_fit_updates_state(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
         """Test that fit updates extractor state correctly."""
         assert not feature_extractor.is_fitted
@@ -106,7 +65,7 @@ class TestFeatureExtractorFit:
         assert feature_extractor.is_fitted
 
     def test_fit_returns_self(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
         """Test that fit returns self for method chaining."""
         result = feature_extractor.fit_transform(sample_questions)
@@ -117,7 +76,7 @@ class TestFeatureExtractorFit:
         self, feature_extractor: FeatureExtractor
     ) -> None:
         """Test fit handles empty questions list."""
-        with pytest.raises((ValueError, AttributeError)):
+        with pytest.raises(FeatureExtractionError):
             feature_extractor.fit_transform([])
 
 
@@ -125,22 +84,12 @@ class TestFeatureExtractorTransform:
     """Test FeatureExtractor transformation."""
 
     def test_transform_single_question(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
         """Test transforming a single question."""
         feature_extractor.fit_transform(sample_questions)
 
-        new_question = CodeQuestion(
-            question_id="test_q_new",
-            question="How to use list comprehension in Python?",
-            choices=[
-                "A) [x for x in list]",
-                "B) list.comp()",
-                "C) for x in list: x",
-                "D) map()",
-            ],
-            answer="A",
-        )
+        new_question = "How to use list comprehension in Python?"
         features = feature_extractor.transform([new_question])
 
         assert isinstance(features, np.ndarray)
@@ -152,15 +101,11 @@ class TestFeatureExtractorTransform:
         self, feature_extractor: FeatureExtractor
     ) -> None:
         """Test transform raises error when not fitted."""
-        question = CodeQuestion(
-            question_id="test_q_single",
-            question="Test question",
-            choices=["A) Answer A", "B) Answer B", "C) Answer C", "D) Answer D"],
-            answer="A",
-        )
+        question = "Test question"
 
         with pytest.raises(
-            FeatureExtractionError, match="Must call fit_transform before"
+            FeatureExtractionError,
+            match="Must call fit_transform\\(\\) before transform",
         ):
             feature_extractor.transform([question])
 
@@ -169,7 +114,7 @@ class TestFeatureExtractorFitTransform:
     """Test FeatureExtractor fit_transform."""
 
     def test_fit_transform(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
         """Test fit_transform combines fit and transform."""
         features = feature_extractor.fit_transform(sample_questions)
@@ -180,7 +125,7 @@ class TestFeatureExtractorFitTransform:
         assert features.shape[0] == len(sample_questions)
 
     def test_fit_transform_equals_fit_then_transform(
-        self, sample_questions: list[CodeQuestion]
+        self, sample_questions: list[str]
     ) -> None:
         """Test fit_transform produces same result as fit then transform."""
         extractor1 = FeatureExtractor(tfidf_max_features=100)
@@ -198,36 +143,23 @@ class TestFeatureExtractorEdgeCases:
     """Test FeatureExtractor edge cases."""
 
     def test_transform_with_special_characters(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
         """Test transformation handles special characters."""
         feature_extractor.fit_transform(sample_questions)
 
-        special_question = CodeQuestion(
-            question="How to use @decorator and #comment in Python?",
-            question_id="test_q_special",
-            choices=["A) Special answer", "B) Other", "C) Another", "D) Last"],
-            answer="A",
-        )
+        special_question = "How to use @decorator and #comment in Python?"
         features = feature_extractor.transform([special_question])
 
         assert isinstance(features, np.ndarray)
         assert not np.isnan(features).any()
 
-    def test_transform_with_empty_question(
-        self, feature_extractor: FeatureExtractor, sample_questions: list[CodeQuestion]
+    def test_transform_with_empty_question_raises_error(
+        self, feature_extractor: FeatureExtractor, sample_questions: list[str]
     ) -> None:
-        """Test transformation handles empty question text."""
+        """Test transformation raises error for empty question text."""
         feature_extractor.fit_transform(sample_questions)
 
-        empty_question = CodeQuestion(
-            question_id="test_q_empty",
-            question="",
-            choices=["A) Empty", "B) Blank", "C) Nothing", "D) Void"],
-            answer="A",
-        )
-        features = feature_extractor.transform([empty_question])
-
-        assert isinstance(features, np.ndarray)
-        # Features should still be generated (likely zeros or defaults)
-        assert len(features) > 0
+        empty_question = ""
+        with pytest.raises(FeatureExtractionError, match="Empty text at index"):
+            feature_extractor.transform([empty_question])

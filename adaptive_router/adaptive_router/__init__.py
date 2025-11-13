@@ -35,8 +35,9 @@ Advanced Usage:
 # TIER 1: Essential API (90% of users)
 # ============================================================================
 
-# Core routing service
+# Core services
 from adaptive_router.core.router import ModelRouter
+from adaptive_router.core.trainer import Trainer
 
 # Request/Response models
 from adaptive_router.models.api import (
@@ -44,6 +45,9 @@ from adaptive_router.models.api import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
+
+# Training models
+from adaptive_router.models.train import ProviderConfig, TrainingResult
 
 # Storage configuration (needed for initialization)
 from adaptive_router.models.storage import MinIOSettings
@@ -98,13 +102,6 @@ from adaptive_router.models.routing import (
     RoutingDecision,
 )
 
-# Evaluation and testing
-from adaptive_router.models.evaluation import (
-    CodeQuestion,
-    EvaluationResult,
-    MCQAnswer,
-)
-
 # Health check
 from adaptive_router.models.health import HealthResponse
 
@@ -119,9 +116,12 @@ __all__ = [
     # Tier 1: Essential API
     # ========================================================================
     "ModelRouter",
+    "Trainer",
     "ModelSelectionRequest",
     "ModelSelectionResponse",
     "Alternative",
+    "ProviderConfig",
+    "TrainingResult",
     "MinIOSettings",
     # ========================================================================
     # Tier 2: Configuration & Integration
@@ -158,10 +158,6 @@ __all__ = [
     "ModelFeatureVector",
     "ModelFeatures",
     "RoutingDecision",
-    # Evaluation
-    "CodeQuestion",
-    "MCQAnswer",
-    "EvaluationResult",
     # Health
     "HealthResponse",
 ]

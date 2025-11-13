@@ -36,6 +36,26 @@ def mock_router():
             feature_dim=100,
             cluster_centers=[[0.0] * 100 for _ in range(10)],
         ),
+        models=[
+            Model(
+                provider="openai",
+                model_name="gpt-4",
+                cost_per_1m_input_tokens=30.0,
+                cost_per_1m_output_tokens=60.0,
+            ),
+            Model(
+                provider="openai",
+                model_name="gpt-3.5-turbo",
+                cost_per_1m_input_tokens=1.5,
+                cost_per_1m_output_tokens=2.0,
+            ),
+            Model(
+                provider="anthropic",
+                model_name="claude-3-sonnet-20240229",
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=15.0,
+            ),
+        ],
         llm_profiles={
             "openai/gpt-4": [0.08] * 10,
             "openai/gpt-3.5-turbo": [0.15] * 10,
@@ -57,27 +77,6 @@ def mock_router():
         ),
     )
 
-    mock_models = [
-        Model(
-            provider="openai",
-            model_name="gpt-4",
-            cost_per_1m_input_tokens=3.0,
-            cost_per_1m_output_tokens=27.0,
-        ),
-        Model(
-            provider="openai",
-            model_name="gpt-3.5-turbo",
-            cost_per_1m_input_tokens=0.2,
-            cost_per_1m_output_tokens=0.8,
-        ),
-        Model(
-            provider="anthropic",
-            model_name="claude-3-sonnet-20240229",
-            cost_per_1m_input_tokens=2.25,
-            cost_per_1m_output_tokens=12.75,
-        ),
-    ]
-
     def mock_build_cluster_engine(self, profile, allow_trust_remote_code):
         mock_engine = Mock()
         mock_engine.n_clusters = 10
@@ -87,7 +86,7 @@ def mock_router():
     with patch.object(
         ModelRouter, "_build_cluster_engine_from_data", mock_build_cluster_engine
     ):
-        router = ModelRouter(profile=mock_profile, models=mock_models)
+        router = ModelRouter(profile=mock_profile)
         return router
 
 

@@ -8,7 +8,9 @@ strongly typed to catch data corruption early and provide better IDE support.
 import math
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+
+from adaptive_router.models.api import Model
 
 
 class ClusterCentersData(BaseModel):
@@ -93,6 +95,7 @@ class RouterProfile(BaseModel):
 
     Attributes:
         cluster_centers: K-means cluster centroids
+        models: List of models included in this profile
         llm_profiles: Model error rates per cluster (model_id -> K error rates)
         tfidf_vocabulary: TF-IDF vocabulary and IDF scores
         scaler_parameters: StandardScaler parameters for feature normalization
@@ -100,6 +103,7 @@ class RouterProfile(BaseModel):
     """
 
     cluster_centers: ClusterCentersData = Field(..., description="Cluster centroids")
+    models: List[Model] = Field(..., description="Models included in this profile")
     llm_profiles: Dict[str, List[float]] = Field(
         ..., description="Model error rates per cluster"
     )
@@ -189,6 +193,42 @@ class RouterProfile(BaseModel):
             raise ValueError(error_msg)
 
         return llm_profiles
+
+    @model_validator(mode="after")
+    def validate_models_consistency(self) -> "RouterProfile":
+        """Validate consistency between models and llm_profiles.
+
+        Ensures that model IDs in the models list match the keys in llm_profiles.
+
+        Returns:
+            Self for method chaining
+
+        Raises:
+            ValueError: If model IDs are inconsistent
+        """
+        model_ids_in_models = {m.unique_id() for m in self.models}
+        model_ids_in_llm = set(self.llm_profiles.keys())
+
+        if model_ids_in_models != model_ids_in_llm:
+            missing_in_llm = model_ids_in_models - model_ids_in_llm
+            extra_in_llm = model_ids_in_llm - model_ids_in_models
+
+            errors = []
+            if missing_in_llm:
+                errors.append(
+                    f"Models present in 'models' but missing in 'llm_profiles': {missing_in_llm}"
+                )
+            if extra_in_llm:
+                errors.append(
+                    f"Models present in 'llm_profiles' but missing in 'models': {extra_in_llm}"
+                )
+
+            error_msg = "Model IDs inconsistency:\n" + "\n".join(
+                f"  - {err}" for err in errors
+            )
+            raise ValueError(error_msg)
+
+        return self
 
 
 class MinIOSettings(BaseModel):

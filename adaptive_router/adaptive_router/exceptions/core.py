@@ -29,8 +29,18 @@ class ClusterNotFittedError(AdaptiveRouterError):
     """Raised when cluster operations are attempted before fitting.
 
     This exception is raised when:
-    - predict() or assign_question() is called before fit()
+    - predict() or assign_single() is called before fit()
     - Cluster engine operations require fitted state
+    """
+
+
+class ClusterNotConfiguredError(AdaptiveRouterError):
+    """Raised when ClusterEngine methods are called before configuration.
+
+    This exception is raised when:
+    - fit(), predict(), or assign_single() called without configure()
+    - Components (FeatureExtractor, KMeans) not initialized
+    - Configuration parameters not set before training
     """
 
 
