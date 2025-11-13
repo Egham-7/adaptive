@@ -179,7 +179,7 @@ class ProviderRegistry:
 default_registry = ProviderRegistry()
 
 # Register all default providers
-_DEFAULT_PROVIDERS = {
+_DEFAULT_PROVIDERS: Dict[str, Type[DeepEvalBaseLLM]] = {
     "openai": GPTModel,
     "azure": AzureOpenAIModel,
     "anthropic": AnthropicModel,
