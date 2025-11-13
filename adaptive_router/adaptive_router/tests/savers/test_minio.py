@@ -120,7 +120,9 @@ class TestMinIOProfileSaver:
 
     @patch("adaptive_router.savers.minio.boto3.client")
     @patch("adaptive_router.savers.minio.get_writer")
-    def test_save_profile_s3_path(self, mock_get_writer, mock_boto3_client, sample_profile):
+    def test_save_profile_s3_path(
+        self, mock_get_writer, mock_boto3_client, sample_profile
+    ):
         """Test saving profile with S3 path format."""
         mock_s3 = MagicMock()
         mock_boto3_client.return_value = mock_s3
@@ -138,7 +140,9 @@ class TestMinIOProfileSaver:
             secret_access_key="test-password",
         )
 
-        result_path = saver.save_profile(sample_profile, "s3://my-bucket/my-profile.json")
+        result_path = saver.save_profile(
+            sample_profile, "s3://my-bucket/my-profile.json"
+        )
 
         assert result_path == "s3://my-bucket/my-profile.json"
         mock_s3.put_object.assert_called_once_with(
@@ -150,7 +154,9 @@ class TestMinIOProfileSaver:
 
     @patch("adaptive_router.savers.minio.boto3.client")
     @patch("adaptive_router.savers.minio.get_writer")
-    def test_save_profile_minio_path(self, mock_get_writer, mock_boto3_client, sample_profile):
+    def test_save_profile_minio_path(
+        self, mock_get_writer, mock_boto3_client, sample_profile
+    ):
         """Test saving profile with MinIO path format."""
         mock_s3 = MagicMock()
         mock_boto3_client.return_value = mock_s3
@@ -168,7 +174,9 @@ class TestMinIOProfileSaver:
             secret_access_key="test-password",
         )
 
-        result_path = saver.save_profile(sample_profile, "minio://my-bucket/my-profile.json")
+        result_path = saver.save_profile(
+            sample_profile, "minio://my-bucket/my-profile.json"
+        )
 
         assert result_path == "minio://my-bucket/my-profile.json"
         mock_s3.put_object.assert_called_once_with(
@@ -219,11 +227,14 @@ class TestMinIOProfileSaver:
 
     @patch("adaptive_router.savers.minio.boto3.client")
     @patch("adaptive_router.savers.minio.get_writer")
-    def test_save_profile_client_error(self, mock_get_writer, mock_boto3_client, sample_profile):
+    def test_save_profile_client_error(
+        self, mock_get_writer, mock_boto3_client, sample_profile
+    ):
         """Test saving profile handles ClientError."""
         mock_s3 = MagicMock()
         mock_s3.put_object.side_effect = ClientError(
-            {"Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"}}, "PutObject"
+            {"Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"}},
+            "PutObject",
         )
         mock_boto3_client.return_value = mock_s3
 
@@ -267,7 +278,8 @@ class TestMinIOProfileSaver:
         """Test health check returns False when bucket is not accessible."""
         mock_s3 = MagicMock()
         mock_s3.head_bucket.side_effect = ClientError(
-            {"Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"}}, "HeadBucket"
+            {"Error": {"Code": "NoSuchBucket", "Message": "Bucket does not exist"}},
+            "HeadBucket",
         )
         mock_boto3_client.return_value = mock_s3
 

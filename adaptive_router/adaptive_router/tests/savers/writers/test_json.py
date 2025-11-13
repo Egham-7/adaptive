@@ -97,7 +97,7 @@ class TestJSONProfileWriter:
         assert isinstance(data, bytes)
 
         # Verify content
-        parsed_data = json.loads(data.decode('utf-8'))
+        parsed_data = json.loads(data.decode("utf-8"))
         assert parsed_data["metadata"]["n_clusters"] == 2
 
     def test_supported_extensions(self):

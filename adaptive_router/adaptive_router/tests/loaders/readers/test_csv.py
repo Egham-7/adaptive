@@ -84,7 +84,9 @@ class TestCSVProfileReader:
 
         assert isinstance(profile, RouterProfile)
         assert profile.metadata.n_clusters == sample_profile.metadata.n_clusters
-        assert profile.metadata.embedding_model == sample_profile.metadata.embedding_model
+        assert (
+            profile.metadata.embedding_model == sample_profile.metadata.embedding_model
+        )
 
     def test_read_from_path_file_not_found(self):
         """Test read_from_path raises FileNotFoundError for missing file."""
@@ -153,6 +155,7 @@ class TestCSVProfileReader:
         """Test reading valid CSV profile from bytes."""
         # Create CSV content
         import io
+
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=["format", "data"])
         writer.writeheader()

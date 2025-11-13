@@ -405,7 +405,9 @@ class Trainer:
         cluster_assignments = cluster_engine.predict(inputs)
 
         # Phase 2: Inference (if needed)
-        actual_outputs, inference_time = self._ensure_actual_outputs(inputs, actual_outputs)
+        actual_outputs, inference_time = self._ensure_actual_outputs(
+            inputs, actual_outputs
+        )
 
         # Phase 3: Compute error rates
         logger.info("\n[3/4] Computing error rates per cluster...")

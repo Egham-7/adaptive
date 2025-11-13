@@ -1,6 +1,5 @@
 """Tests for CSVProfileWriter."""
 
-
 import pytest
 
 from adaptive_router.models.storage import RouterProfile
@@ -97,7 +96,7 @@ class TestCSVProfileWriter:
         assert isinstance(data, bytes)
 
         # Verify CSV format
-        content = data.decode('utf-8')
+        content = data.decode("utf-8")
         assert "format,data" in content
         assert "json" in content
 

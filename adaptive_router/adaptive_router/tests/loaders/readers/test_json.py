@@ -123,4 +123,3 @@ class TestJSONProfileReader:
         """Test supported_extensions returns correct extensions."""
         extensions = JSONProfileReader.supported_extensions()
         assert extensions == [".json"]
-

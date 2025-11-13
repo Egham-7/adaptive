@@ -1,6 +1,5 @@
 """Tests for ParquetProfileWriter."""
 
-
 import pytest
 
 from adaptive_router.models.storage import RouterProfile

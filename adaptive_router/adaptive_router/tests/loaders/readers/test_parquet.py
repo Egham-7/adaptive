@@ -223,4 +223,3 @@ class TestParquetProfileReader:
         """Test supported_extensions returns correct extensions."""
         extensions = ParquetProfileReader.supported_extensions()
         assert extensions == [".parquet", ".pq"]
-

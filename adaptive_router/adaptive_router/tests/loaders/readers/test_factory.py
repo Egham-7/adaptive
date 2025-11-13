@@ -42,6 +42,7 @@ class TestGetReader:
     def test_get_reader_path_object(self):
         """Test get_reader works with Path objects."""
         from pathlib import Path
+
         reader = get_reader(Path("profile.json"))
         assert isinstance(reader, JSONProfileReader)
 

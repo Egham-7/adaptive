@@ -27,7 +27,7 @@ class TestGetSaver:
         with pytest.raises(ValueError, match="MinIO settings required"):
             get_saver("minio://bucket/profile.json")
 
-    @patch('adaptive_router.savers.MinIOProfileSaver')
+    @patch("adaptive_router.savers.MinIOProfileSaver")
     def test_get_saver_s3_path_with_settings(self, mock_minio_saver):
         """Test get_saver returns MinIOProfileSaver for S3 paths with settings."""
         from adaptive_router.models.storage import MinIOSettings
@@ -38,7 +38,7 @@ class TestGetSaver:
             profile_key="profile.json",
             endpoint_url="https://s3.amazonaws.com",
             root_user="test",
-            root_password="test"
+            root_password="test",
         )
 
         mock_instance = MagicMock()
@@ -49,7 +49,7 @@ class TestGetSaver:
         mock_minio_saver.from_settings.assert_called_once_with(settings)
         assert result == mock_instance
 
-    @patch('adaptive_router.savers.MinIOProfileSaver')
+    @patch("adaptive_router.savers.MinIOProfileSaver")
     def test_get_saver_minio_path_with_settings(self, mock_minio_saver):
         """Test get_saver returns MinIOProfileSaver for MinIO paths with settings."""
         from adaptive_router.models.storage import MinIOSettings
@@ -60,7 +60,7 @@ class TestGetSaver:
             profile_key="profile.json",
             endpoint_url="https://minio.example.com",
             root_user="test",
-            root_password="test"
+            root_password="test",
         )
 
         mock_instance = MagicMock()
