@@ -15,21 +15,8 @@ import pandas as pd
 from deepeval.dataset import Golden
 from deepeval.models import DeepEvalBaseLLM
 
-from adaptive_router.evaluators import (
-    AmazonBedrockModel,
-    AnthropicModel,
-    AzureOpenAIModel,
-    DeepSeekModel,
-    GeminiModel,
-    GPTModel,
-    GrokModel,
-    KimiModel,
-    LiteLLMModel,
-    LocalModel,
-    OllamaModel,
-)
-
 from adaptive_router.core.cluster_engine import ClusterEngine
+from adaptive_router.core.provider_registry import default_registry
 from adaptive_router.models.api import Model
 from adaptive_router.models.storage import (
     ClusterCentersData,
@@ -44,26 +31,6 @@ from adaptive_router.models.train import ProviderConfig, TrainingResult
 
 
 logger = logging.getLogger(__name__)
-
-
-# Provider factory mapping
-_PROVIDER_FACTORIES: dict[str, type[DeepEvalBaseLLM]] = {
-    "openai": GPTModel,
-    "azure": AzureOpenAIModel,
-    "azure-openai": AzureOpenAIModel,
-    "anthropic": AnthropicModel,
-    "amazon-bedrock": AmazonBedrockModel,
-    "bedrock": AmazonBedrockModel,
-    "deepseek": DeepSeekModel,
-    "gemini": GeminiModel,
-    "google": GeminiModel,
-    "grok": GrokModel,
-    "xai": GrokModel,
-    "kimi": KimiModel,
-    "litellm": LiteLLMModel,
-    "local": LocalModel,
-    "ollama": OllamaModel,
-}
 
 
 class Trainer:
@@ -604,12 +571,7 @@ class Trainer:
         Raises:
             ValueError: If provider not supported
         """
-        factory = _PROVIDER_FACTORIES.get(model.provider)
-        if not factory:
-            raise ValueError(
-                f"Unsupported provider: {model.provider}. "
-                f"Supported: {list(_PROVIDER_FACTORIES.keys())}"
-            )
+        factory = default_registry.get_factory(model.provider)
 
         # Build client kwargs
         kwargs = {"model": model.model_name}
