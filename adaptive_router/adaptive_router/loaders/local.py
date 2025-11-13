@@ -36,7 +36,7 @@ class LocalFileProfileLoader(ProfileLoader):
             if "validation error" in str(e).lower():
                 error_msg = f"Profile validation failed: {e}"
                 logger.error(error_msg)
-                raise ValueError(error_msg)
+                raise ValueError(error_msg) from e
             raise
 
     def health_check(self) -> bool:

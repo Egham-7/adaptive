@@ -1,6 +1,7 @@
 """CSV profile writer implementation."""
 
 import csv
+import io
 import json
 import logging
 from pathlib import Path
@@ -71,8 +72,6 @@ class CSVProfileWriter(ProfileWriter):
             json_data = json.dumps(profile_dict, ensure_ascii=False)
 
             # Create CSV content in memory
-            import io
-
             output = io.StringIO()
             writer = csv.DictWriter(output, fieldnames=["format", "data"])
             writer.writeheader()

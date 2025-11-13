@@ -14,6 +14,7 @@ _WRITER_REGISTRY: dict[str, Type[ProfileWriter]] = {}
 # Auto-register writers
 for writer_cls in [JSONProfileWriter, CSVProfileWriter, ParquetProfileWriter]:
     for ext in writer_cls.supported_extensions():
+        ext = ext.lower().strip()
         _WRITER_REGISTRY[ext] = writer_cls  # type: ignore[type-abstract]
 
 
@@ -48,6 +49,7 @@ def register_writer(writer_cls: Type[ProfileWriter]) -> None:
         writer_cls: Writer class to register
     """
     for ext in writer_cls.supported_extensions():
+        ext = ext.lower().strip()
         _WRITER_REGISTRY[ext] = writer_cls
 
 

@@ -405,13 +405,7 @@ class Trainer:
         cluster_assignments = cluster_engine.predict(inputs)
 
         # Phase 2: Inference (if needed)
-        inference_time = None
-        actual_outputs = self._ensure_actual_outputs(inputs, actual_outputs)
-        if actual_outputs is not None:
-            inference_start = time.time()
-            inference_time = time.time() - inference_start
-            if inference_time > 0.1:  # Only log if inference actually happened
-                logger.info(f"✓ Inference complete ({inference_time:.1f}s)")
+        actual_outputs, inference_time = self._ensure_actual_outputs(inputs, actual_outputs)
 
         # Phase 3: Compute error rates
         logger.info("\n[3/4] Computing error rates per cluster...")
@@ -473,7 +467,7 @@ class Trainer:
 
     def _ensure_actual_outputs(
         self, inputs: list[str], actual_outputs: dict[str, list[str]] | None = None
-    ) -> dict[str, list[str]]:
+    ) -> tuple[dict[str, list[str]], float]:
         """Ensure all rows have actual outputs, running inference where needed.
 
         Args:
@@ -481,7 +475,7 @@ class Trainer:
             actual_outputs: Optional dict of model_id -> outputs (may have missing values)
 
         Returns:
-            Complete dict of model_id -> outputs with all values filled
+            Tuple of (complete dict of model_id -> outputs with all values filled, elapsed_seconds)
         """
         # If no actual outputs provided, run full inference
         if actual_outputs is None:
@@ -492,7 +486,7 @@ class Trainer:
             result = asyncio.run(self._run_parallel_inference(inputs))
             inference_time = time.time() - inference_start
             logger.info(f"✓ Full inference complete ({inference_time:.1f}s)")
-            return result
+            return result, inference_time
 
         # Check which models/rows need inference
         n_samples = len(inputs)
@@ -528,7 +522,7 @@ class Trainer:
         # If no inference needed, return as-is
         if not models_needing_inference:
             logger.info("\n[2/4] All actual outputs present (skipping inference)")
-            return actual_outputs
+            return actual_outputs, 0.0
 
         # Run inference for missing values
         logger.info(
@@ -570,7 +564,7 @@ class Trainer:
         inference_time = time.time() - inference_start
         logger.info(f"✓ Partial inference complete ({inference_time:.1f}s)")
 
-        return result
+        return result, inference_time
 
     async def _run_parallel_inference(self, inputs: list[str]) -> dict[str, list[str]]:
         """Run parallel inference across all models.
