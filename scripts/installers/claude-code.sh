@@ -257,7 +257,7 @@ configure_claude() {
     echo "{"
     echo '  "env": {'
     echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
-    echo '    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api",'
+    echo '    "ANTHROPIC_BASE_URL": "https://api.llmadaptive.uk/api",'
     echo '    "API_TIMEOUT_MS": "3000000",'
     echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
     echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto"'
