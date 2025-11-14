@@ -92,27 +92,12 @@ def parse_adaptive_response(
         input_tokens = usage.get("prompt_tokens", 0)
         output_tokens = usage.get("completion_tokens", 0)
 
-        # Extract cost - check if Adaptive returns it
-        cost = None
-
-        # Check for cost in various possible locations
-        if "cost" in response_json:
-            cost = response_json.get("cost")
-        elif "usage" in response_json and "cost" in response_json["usage"]:
-            cost = response_json["usage"].get("cost")
-        elif "adaptive_metadata" in response_json:
-            cost = response_json["adaptive_metadata"].get("cost")
-
-        # If no cost provided, calculate based on selected model
-        if cost is None:
-            logger.warning(
-                f"Adaptive API didn't return cost for {selected_model}, calculating..."
-            )
-            cost = PricingCalculator.calculate_cost(
-                model=selected_model,
-                input_tokens=input_tokens,
-                output_tokens=output_tokens,
-            )
+        # Always calculate cost manually using our pricing table
+        cost = PricingCalculator.calculate_cost(
+            model=selected_model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+        )
 
         return input_tokens, output_tokens, cost, selected_model
 

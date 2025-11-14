@@ -85,15 +85,8 @@ class AdaptiveConfig:
     api_base: str = "https://api.llmadaptive.uk/v1"
     models: list[str] | None = None
     cost_bias: float = 0.5
-
-    def __post_init__(self) -> None:
-        """Set default models if not provided."""
-        if self.models is None:
-            self.models = [
-                "gpt-4o-mini",
-                "claude-3-5-sonnet-20241022",
-                "gemini-2.0-flash-exp",
-            ]
+    max_concurrent: int = 10
+    max_requests_per_second: float = 20.0
 
     @classmethod
     def from_env(cls) -> "AdaptiveConfig":
@@ -116,6 +109,8 @@ class AdaptiveConfig:
             api_base=os.getenv("ADAPTIVE_BASE_URL", "https://api.llmadaptive.uk/v1"),
             models=models,
             cost_bias=float(os.getenv("ADAPTIVE_COST_BIAS", "0.5")),
+            max_concurrent=int(os.getenv("MAX_CONCURRENT_REQUESTS", "10")),
+            max_requests_per_second=float(os.getenv("MAX_REQUESTS_PER_SECOND", "20.0")),
         )
 
     def validate(self) -> bool:
@@ -125,8 +120,6 @@ class AdaptiveConfig:
                 "ADAPTIVE_API_KEY not found in environment. "
                 "Please set it in .env or pass it explicitly."
             )
-        if not self.models or len(self.models) == 0:
-            raise ValueError("Adaptive routing requires at least one model")
         return True
 
 
@@ -162,9 +155,13 @@ class BenchmarkSettings:
         print(f"    Results folder:           {self.swebench.results_folder}")
 
         print("\n  Adaptive Router:")
-        print(f"    Models:                   {len(self.adaptive.models)} models")
-        print(f"      - Cost bias:            {self.adaptive.cost_bias}")
-        print(f"      - Models:               {', '.join(self.adaptive.models)}")
+        if self.adaptive.models:
+            print(f"    Models:                   {len(self.adaptive.models)} models")
+            print(f"      - Cost bias:            {self.adaptive.cost_bias}")
+            print(f"      - Models:               {', '.join(self.adaptive.models)}")
+        else:
+            print(f"    Models:                   Auto (server default)")
+            print(f"      - Cost bias:            {self.adaptive.cost_bias}")
 
         print("\n" + "=" * 70 + "\n")
 

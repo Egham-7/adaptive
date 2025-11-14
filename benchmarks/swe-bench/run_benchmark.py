@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
@@ -109,6 +110,95 @@ def generate_predictions(
                 "instance_id": instance_id,
                 "model_patch": ""
             })
+
+    # Add model selection stats
+    tracker.set_model_selection_stats(model.get_model_selection_stats())
+
+    logger.info(f"\n{'='*70}")
+    logger.info(f"Generation complete: {len(predictions)} predictions")
+    logger.info(f"{'='*70}\n")
+
+    return predictions, tracker
+
+
+async def generate_predictions_async(
+    model: AdaptiveModel,
+    instances: list[dict],
+    temperature: float,
+    max_tokens: int
+) -> tuple[list[dict], ResultTracker]:
+    """
+    Generate predictions asynchronously for all instances using Adaptive routing.
+
+    Args:
+        model: AdaptiveModel instance
+        instances: List of SWE-bench instances
+        temperature: Sampling temperature
+        max_tokens: Maximum tokens to generate
+
+    Returns:
+        Tuple of (predictions list, ResultTracker)
+    """
+    predictions = []
+    tracker = ResultTracker(
+        model_name=model.get_model_name(),
+        dataset="swe-bench_lite"
+    )
+
+    logger.info(f"\n{'='*70}")
+    logger.info(f"Generating predictions for {len(instances)} instances (async)")
+    logger.info(f"{'='*70}\n")
+
+    # Create all tasks
+    tasks = [
+        model.solve_instance_async(
+            instance_id=inst["instance_id"],
+            repo=inst.get("repo", "unknown"),
+            base_commit=inst.get("base_commit", ""),
+            problem_statement=inst["problem_statement"],
+            repo_context="",
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        for inst in instances
+    ]
+
+    # Run all tasks concurrently and wait for results
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Process results
+    for i, (instance, result) in enumerate(zip(instances, results), 1):
+        instance_id = instance["instance_id"]
+        logger.info(f"[{i}/{len(instances)}] Processing {instance_id}")
+
+        if isinstance(result, Exception):
+            logger.error(f"  ✗ Error: {str(result)}")
+            predictions.append({
+                "instance_id": instance_id,
+                "model_patch": ""
+            })
+        else:
+            # Add to tracker
+            tracker.add_instance_result(result)
+
+            # Add to predictions
+            if result.patch_generated and result.patch_content:
+                predictions.append({
+                    "instance_id": instance_id,
+                    "model_patch": result.patch_content
+                })
+                logger.info(
+                    f"  ✓ Patch generated | "
+                    f"Cost: ${result.total_cost:.4f} | "
+                    f"Tokens: {result.total_tokens} | "
+                    f"Model: {result.generation_metrics.model_used}"
+                )
+            else:
+                logger.warning(f"  ✗ Failed to generate patch")
+                predictions.append({
+                    "instance_id": instance_id,
+                    "model_patch": ""
+                })
 
     # Add model selection stats
     tracker.set_model_selection_stats(model.get_model_selection_stats())
@@ -222,6 +312,8 @@ def main() -> int:
             api_base=adaptive_config.api_base,
             models=adaptive_config.models,
             cost_bias=adaptive_config.cost_bias,
+            max_concurrent=adaptive_config.max_concurrent,
+            max_requests_per_second=adaptive_config.max_requests_per_second,
         )
 
         # Load dataset instances
@@ -231,13 +323,13 @@ def main() -> int:
             max_instances=swebench_config.max_instances
         )
 
-        # Generate predictions
-        predictions, tracker = generate_predictions(
+        # Generate predictions (async)
+        predictions, tracker = asyncio.run(generate_predictions_async(
             model=model,
             instances=instances,
             temperature=swebench_config.temperature,
             max_tokens=swebench_config.max_tokens,
-        )
+        ))
 
         # Print generation summary
         tracker.print_summary()
