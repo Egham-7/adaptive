@@ -210,6 +210,16 @@ class Trainer:
             keys = list(data.keys())
             if not keys:
                 raise ValueError("Empty data dictionary")
+
+            # Validate all columns have the same length
+            lengths = {k: len(data[k]) for k in keys}
+            unique_lengths = set(lengths.values())
+            if len(unique_lengths) != 1:
+                raise ValueError(
+                    f"Inconsistent column lengths in data: {lengths}. "
+                    f"All columns must have the same number of rows."
+                )
+
             n = len(data[keys[0]])
             data = [{k: data[k][i] for k in keys} for i in range(n)]
 
@@ -434,10 +444,10 @@ class Trainer:
         self.cluster_engine.fit(inputs)
         return self.cluster_engine
 
-    def _ensure_actual_outputs(
+    async def _ensure_actual_outputs_async(
         self, inputs: list[str], actual_outputs: dict[str, list[str]] | None = None
     ) -> tuple[dict[str, list[str]], float]:
-        """Ensure all rows have actual outputs, running inference where needed.
+        """Async version: Ensure all rows have actual outputs, running inference where needed.
 
         Args:
             inputs: List of input strings
@@ -452,7 +462,7 @@ class Trainer:
                 "\n[2/4] No actual outputs provided - running full inference..."
             )
             inference_start = time.time()
-            result = asyncio.run(self._run_parallel_inference(inputs))
+            result = await self._run_parallel_inference(inputs)
             inference_time = time.time() - inference_start
             logger.info(f"✓ Full inference complete ({inference_time:.1f}s)")
             return result, inference_time
@@ -504,6 +514,9 @@ class Trainer:
             model_id: list(outputs) for model_id, outputs in actual_outputs.items()
         }
 
+        # Create shared semaphore for all models
+        semaphore = asyncio.Semaphore(self.max_parallel)
+
         # Run inference for each model that needs it
         for model in models_needing_inference:
             model_id = model.unique_id()
@@ -517,10 +530,7 @@ class Trainer:
             # Run inference
             provider_config = self.provider_configs[model.provider]
             client = self._create_client(model, provider_config)
-            semaphore = asyncio.Semaphore(self.max_parallel)
-            outputs = asyncio.run(
-                self._async_generate(client, missing_inputs, semaphore)
-            )
+            outputs = await self._async_generate(client, missing_inputs, semaphore)
 
             # Initialize result if model not in actual_outputs
             if model_id not in result:
@@ -535,6 +545,20 @@ class Trainer:
 
         return result, inference_time
 
+    def _ensure_actual_outputs(
+        self, inputs: list[str], actual_outputs: dict[str, list[str]] | None = None
+    ) -> tuple[dict[str, list[str]], float]:
+        """Sync wrapper: Ensure all rows have actual outputs, running inference where needed.
+
+        Args:
+            inputs: List of input strings
+            actual_outputs: Optional dict of model_id -> outputs (may have missing values)
+
+        Returns:
+            Tuple of (complete dict of model_id -> outputs with all values filled, elapsed_seconds)
+        """
+        return asyncio.run(self._ensure_actual_outputs_async(inputs, actual_outputs))
+
     async def _run_parallel_inference(self, inputs: list[str]) -> dict[str, list[str]]:
         """Run parallel inference across all models.
 
@@ -544,18 +568,23 @@ class Trainer:
         Returns:
             Dict mapping model_id to list of outputs
         """
-        results = {}
         semaphore = asyncio.Semaphore(self.max_parallel)
 
-        for model in self.models:
+        async def run_model(model: Model) -> tuple[str, list[str]]:
+            """Run inference for a single model."""
             model_id = model.unique_id()
             logger.info(f"  Running inference with {model_id}...")
             provider_config = self.provider_configs[model.provider]
             client = self._create_client(model, provider_config)
 
             outputs = await self._async_generate(client, inputs, semaphore)
-            results[model_id] = outputs
+            return model_id, outputs
 
+        # Run all models concurrently
+        model_results = await asyncio.gather(*[run_model(model) for model in self.models])
+
+        # Convert to dict
+        results = {model_id: outputs for model_id, outputs in model_results}
         return results
 
     def _create_client(self, model: Model, config: ProviderConfig) -> DeepEvalBaseLLM:
@@ -569,15 +598,16 @@ class Trainer:
             DeepEval LLM client
 
         Raises:
-            ValueError: If provider not supported
+            ValueError: If provider not supported or API key missing (except for local)
         """
         factory = default_registry.get_factory(model.provider)
 
         # Build client kwargs
         kwargs = {"model": model.model_name}
 
-        if not config.api_key:
-            raise ValueError("API key is required in ProviderConfig")
+        # Allow empty API key for local provider
+        if not config.api_key and model.provider != "local":
+            raise ValueError(f"API key is required for provider '{model.provider}'")
 
         # Add config parameters
         kwargs["api_key"] = config.api_key
@@ -598,31 +628,34 @@ class Trainer:
     ) -> list[str]:
         """Generate outputs asynchronously with rate limiting.
 
-        Uses batch generation if supported by the client for better performance.
+        Rate limiting is applied per individual API call, not per batch.
+        This allows concurrent requests across multiple models while
+        respecting the global max_parallel limit.
 
         Args:
             client: DeepEval LLM client
             inputs: List of input prompts
-            semaphore: Semaphore for rate limiting
+            semaphore: Semaphore for rate limiting individual API calls
 
         Returns:
             List of output strings
         """
-        async with semaphore:
-            try:
+        try:
 
-                async def generate_one(prompt: str) -> str:
+            async def generate_one(prompt: str) -> str:
+                """Generate output for a single prompt with rate limiting."""
+                async with semaphore:
                     response = await asyncio.to_thread(client.generate, prompt)
                     return response
 
-                tasks = [generate_one(inp) for inp in inputs]
-                return await asyncio.gather(*tasks)
-            except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
-                logger.warning(f"Generation failed with recoverable error: {e}")
-                return [""] * len(inputs)
-            except Exception as e:
-                logger.error(f"Generation failed with unexpected error: {e}")
-                raise
+            tasks = [generate_one(inp) for inp in inputs]
+            return await asyncio.gather(*tasks)
+        except (ValueError, RuntimeError, ConnectionError, TimeoutError) as e:
+            logger.warning(f"Generation failed with recoverable error: {e}")
+            return [""] * len(inputs)
+        except Exception as e:
+            logger.error(f"Generation failed with unexpected error: {e}")
+            raise
 
     def _compute_error_rates(
         self,

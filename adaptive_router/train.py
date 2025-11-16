@@ -205,7 +205,7 @@ def create_model_from_api(
     prompt_cost = pricing.get("prompt_cost")
     completion_cost = pricing.get("completion_cost")
 
-    if not prompt_cost or not completion_cost:
+    if prompt_cost is None or completion_cost is None:
         raise ValueError(
             f"Incomplete pricing data for {model_spec}. "
             f"Both prompt_cost and completion_cost are required."

@@ -112,6 +112,22 @@ class TestLocalFileProfileLoaderLoadProfile:
     # tfidf_vocabulary, scaler_parameters with specific nested structures).
     # We test error paths which are more critical for robustness.
 
+    def test_load_profile_from_csv(self, csv_profile_file) -> None:
+        """Test loading profile from CSV file."""
+        loader = LocalFileProfileLoader(csv_profile_file)
+        profile = loader.load_profile()
+
+        assert profile.metadata.n_clusters == 2
+        assert len(profile.models) == 1
+
+    def test_load_profile_from_parquet(self, parquet_profile_file) -> None:
+        """Test loading profile from Parquet file."""
+        loader = LocalFileProfileLoader(parquet_profile_file)
+        profile = loader.load_profile()
+
+        assert profile.metadata.n_clusters == 2
+        assert len(profile.models) == 1
+
     def test_load_profile_with_corrupted_json(self, tmp_path) -> None:
         """Test loading corrupted JSON raises ValueError."""
         corrupted_file = tmp_path / "corrupted.json"
