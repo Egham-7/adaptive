@@ -63,6 +63,7 @@ def resolve_models(
         raise ValueError("No models loaded in router profile")
 
     models_by_id, models_by_author = _build_model_indexes(available_models)
+    skipped_specs: list[str] = []
 
     resolved_models: list[Model] = []
     for spec in model_specs:
@@ -89,11 +90,12 @@ def resolve_models(
                     else f" (and {len(suggestions) - 5} more)"
                 )
                 suggestion_text = f". Available {author} models: {preview}{suffix}"
-
-            raise ValueError(
-                f"Model '{spec}' not found in router profile{suggestion_text}"
-            )
+            skipped_specs.append(f"{spec}{suggestion_text}")
+            continue
 
         resolved_models.append(model)
+
+    for skipped in skipped_specs:
+        logger.warning("Requested model ignored: %s", skipped)
 
     return resolved_models

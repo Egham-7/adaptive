@@ -42,11 +42,15 @@ class TestResolveModels:
         base = resolve_models(["google/gemini-2.0-flash-001"], models)
         assert base[0].model_name == "gemini-2.0-flash-001"
 
-    def test_raises_error_for_unknown_models(self) -> None:
+    def test_ignores_unknown_models(self) -> None:
         models = [_make_model("openai", "gpt-4")]
 
-        with pytest.raises(ValueError, match="not found"):
-            resolve_models(["openai/gpt-5"], models)
+        result = resolve_models(
+            ["openai/gpt-5", "openai/gpt-4", "anthropic/claude-3"], models
+        )
+
+        assert len(result) == 1
+        assert result[0].model_name == "gpt-4"
 
     def test_raises_error_for_invalid_format(self) -> None:
         models = [_make_model("openai", "gpt-4")]
