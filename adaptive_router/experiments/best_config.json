@@ -1,0 +1,7 @@
+{
+  "model": "CodeBERT (768D)",
+  "k": 5,
+  "silhouette": 0.25172579288482666,
+  "improvement_pct": 613.1041870117188,
+  "target_achieved": false
+}
