@@ -42,6 +42,10 @@ dependencies = [
   "methodtools>=0.4.7",
   "uvicorn>=0.38.0",
   "deepeval>=3.7.0",
+  "datasets>=4.4.1",
+  "polars>=1.35.2",
+  # TOML parsing for training script (Python < 3.11)
+  "tomli>=2.0.0,<3; python_version < '3.11'",
 ]
 
 [project.urls]
@@ -51,20 +55,7 @@ Documentation = "https://docs.llmadaptive.uk"
 "Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
 
 [project.optional-dependencies]
-scripts = [
-  # LLM Integration for evaluation scripts
-  "langchain>=0.3.26,<0.4",
-  "langchain-openai>=0.3.0,<0.4",
-  "langchain-anthropic>=0.3.0,<0.4",
-  "langchain-groq>=0.3.0,<0.4",
-  "langchain-google-genai>=2.0.0,<3",
-  "openai>=1.97.1",
-  "anthropic>=0.39.0",
-  "groq>=0.11.0",
-  # Script utilities
-  "tqdm>=4.66.0,<5",
-  "pyyaml>=6.0.2,<7",
-]
+
 
 [dependency-groups]
 dev = [

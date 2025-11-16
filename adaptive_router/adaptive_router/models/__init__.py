@@ -14,11 +14,6 @@ from .config import (
     YAMLModelsConfig,
     YAMLRoutingConfig,
 )
-from .evaluation import (
-    CodeQuestion,
-    EvaluationResult,
-    MCQAnswer,
-)
 from .health import HealthResponse
 from .routing import (
     ModelFeatureVector,
@@ -27,6 +22,7 @@ from .routing import (
     ModelPricing,
     RoutingDecision,
 )
+from .train import ProviderConfig, TrainingResult
 from .storage import (
     ClusterCentersData,
     MinIOSettings,
@@ -40,10 +36,7 @@ from .storage import (
 __all__ = [
     "Alternative",
     "ClusterCentersData",
-    "CodeQuestion",
-    "EvaluationResult",
     "HealthResponse",
-    "MCQAnswer",
     "MinIOSettings",
     "Model",
     "ModelConfig",
@@ -54,11 +47,13 @@ __all__ = [
     "ModelSelectionRequest",
     "ModelSelectionResponse",
     "ProfileMetadata",
+    "ProviderConfig",
     "RouterProfile",
     "RoutingDecision",
     "ScalerParameters",
     "ScalerParametersData",
     "TFIDFVocabularyData",
+    "TrainingResult",
     "YAMLModelsConfig",
     "YAMLRoutingConfig",
 ]
