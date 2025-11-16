@@ -114,7 +114,7 @@ class TestClusterEngine:
         assert all(0 <= p < small_cluster_engine.n_clusters for p in predictions)
 
     @pytest.mark.slow
-    def test_assign_question(
+    def test_assign_single(
         self, small_cluster_engine: ClusterEngine, sample_questions: List[str]
     ) -> None:
         """Test assigning a single question to a cluster."""
@@ -132,10 +132,10 @@ class TestClusterEngine:
         assert distance >= 0.0
 
     @pytest.mark.slow
-    def test_assign_question_before_fit_raises_error(
+    def test_assign_single_before_fit_raises_error(
         self, small_cluster_engine: ClusterEngine
     ) -> None:
-        """Test that assign_question raises error if called before fit."""
+        """Test that assign_single raises error if called before fit."""
         engine = small_cluster_engine
 
         with pytest.raises(Exception, match="Must call fit"):
@@ -374,7 +374,7 @@ class TestClusterEnginePerformance:
         assert elapsed < 30.0
 
     @pytest.mark.slow
-    def test_assign_question_performance(
+    def test_assign_single_performance(
         self, small_cluster_engine: ClusterEngine, sample_questions: List[str]
     ) -> None:
         """Test that single question assignment is fast."""
