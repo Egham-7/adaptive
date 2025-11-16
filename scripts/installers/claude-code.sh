@@ -17,9 +17,9 @@ API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 API_TIMEOUT_MS=3000000
 
 # Model override defaults (can be overridden by environment variables)
-# Empty strings enable intelligent model routing for optimal cost/performance
-DEFAULT_PRIMARY_MODEL=""
-DEFAULT_FAST_MODEL=""
+# Use adaptive/auto to enable intelligent routing for optimal cost/performance
+DEFAULT_PRIMARY_MODEL="adaptive/auto"
+DEFAULT_FAST_MODEL="adaptive/auto"
 
 # ========================
 #       Utility Functions
@@ -184,14 +184,14 @@ validate_api_key() {
 validate_model_override() {
   local model="$1"
 
-  # Allow empty string for intelligent routing
+  # Empty values fall back to adaptive/auto for backward compatibility
   if [ -z "$model" ]; then
     return 0
   fi
 
   # Validate format: provider/model_id
   if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model override format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-0) or empty string for intelligent routing"
+    log_error "Model override format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-5) or use adaptive/auto for intelligent routing"
     return 1
   fi
   return 0
@@ -247,8 +247,8 @@ configure_claude() {
     echo ""
     echo "🎯 Option 3: Customize models (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_PRIMARY_MODEL='anthropic/claude-opus-4-1'  # or empty for intelligent routing"
-    echo "   export ADAPTIVE_FAST_MODEL='anthropic/claude-3-5-haiku-latest'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_PRIMARY_MODEL='anthropic/claude-sonnet-4-5'  # or adaptive/auto for intelligent routing"
+    echo "   export ADAPTIVE_FAST_MODEL='anthropic/claude-4-5-haiku'  # or adaptive/auto for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -259,8 +259,8 @@ configure_claude() {
     echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
     echo '    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api",'
     echo '    "API_TIMEOUT_MS": "3000000",'
-    echo '    "ANTHROPIC_MODEL": "",'
-    echo '    "ANTHROPIC_SMALL_FAST_MODEL": ""'
+    echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
+    echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto"'
     echo "  }"
     echo "}"
     echo "EOF"
@@ -401,7 +401,7 @@ main() {
     echo "   • Intelligent routing enabled by default for optimal cost/performance"
     echo "   • Current models: Claude Opus 4.1, Sonnet 4, Haiku 3.5"
     echo "   • Override models: ADAPTIVE_PRIMARY_MODEL, ADAPTIVE_FAST_MODEL env vars"
-    echo "   • Use provider/model_id format (e.g. anthropic/claude-opus-4-1)"
+    echo "   • Use provider/model_id format (e.g., anthropic/claude-sonnet-4-5)"
     echo ""
     echo "📖 Full Documentation: https://docs.llmadaptive.uk/developer-tools/claude-code"
     echo "🐛 Report Issues: https://github.com/Egham-7/adaptive/issues"

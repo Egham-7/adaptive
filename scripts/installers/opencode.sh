@@ -22,8 +22,8 @@ API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults:
-# - empty string means "use intelligent routing"
-DEFAULT_MODEL=""
+# - use adaptive/auto for intelligent routing
+DEFAULT_MODEL="adaptive/auto"
 
 # ========================
 #       Logging
@@ -181,7 +181,7 @@ validate_api_key() {
 
 validate_model_override() {
   local model="$1"
-  # empty => allowed (router)
+  # Empty => falls back to adaptive/auto
   if [ -z "$model" ]; then return 0; fi
   [[ "$model" =~ ^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$ ]]
 }
@@ -197,11 +197,9 @@ create_opencode_config() {
   create_config_backup "$config_file"
 
   # If user gave ADAPTIVE_MODEL, use it; else default to router id.
-  local effective_model
-  if [ -z "$model" ]; then
-    effective_model="intelligent-routing"
-  else
-    effective_model="$model"
+  local effective_model="$model"
+  if [ -z "$effective_model" ]; then
+    effective_model="$DEFAULT_MODEL"
   fi
 
   cat > "$config_file" <<EOF
@@ -215,15 +213,10 @@ create_opencode_config() {
         "baseURL": "$API_BASE_URL",
         "headers": { "User-Agent": "opencode-adaptive-integration" }
       },
-      "models": {
-        "intelligent-routing": {
-          "name": "🧠 Intelligent Routing",
-          "description": "Chooses the optimal model per request"
-        }
-      }
+      "models": {}
     }
   },
-  "model": "adaptive/${effective_model}"
+  "model": "${effective_model}"
 }
 EOF
 
@@ -296,16 +289,18 @@ main() {
 
   # 3) Read env overrides (optional)
   local api_key="${ADAPTIVE_API_KEY:-}"
-  local model="${ADAPTIVE_MODEL:-$DEFAULT_MODEL}"
+  local model_override="${ADAPTIVE_MODEL:-}"
+  local model="$DEFAULT_MODEL"
 
-  if [ -n "$model" ]; then
-    if ! validate_model_override "$model"; then
-      log_error "Invalid ADAPTIVE_MODEL: '$model'. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-0)."
+  if [ -n "$model_override" ]; then
+    if ! validate_model_override "$model_override"; then
+      log_error "Invalid ADAPTIVE_MODEL: '$model_override'. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-5)."
       exit 1
     fi
-    log_info "Using custom model: $model"
+    log_info "Using custom model override: $model_override"
+    model="$model_override"
   else
-    log_info "Using Intelligent Routing (no explicit model override)."
+    log_info "Using adaptive/auto intelligent routing (no explicit model override)."
   fi
 
   # 4) If API key is present, quick format check (we cannot inject it non-interactively)
@@ -341,7 +336,7 @@ main() {
     echo ""
     echo "🔍 Verify"
     echo "   opencode auth list             # should list 'adaptive'"
-    echo "   cat $CONFIG_FILE               # see 'model': 'adaptive/intelligent-routing'"
+    echo "   cat $CONFIG_FILE               # see 'model': 'adaptive/auto'"
     echo ""
     echo "📊 Monitor"
     echo "   Dashboard: $API_KEY_URL"
@@ -358,4 +353,3 @@ main() {
 }
 
 main "$@"
-

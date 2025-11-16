@@ -12,8 +12,8 @@ API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
-# Empty strings enable intelligent model routing for optimal cost/performance
-DEFAULT_MODEL=""
+# Use adaptive/auto to enable intelligent routing for optimal cost/performance
+DEFAULT_MODEL="adaptive/auto"
 DEFAULT_MODEL_PROVIDER="adaptive"
 
 # ========================
@@ -279,14 +279,14 @@ validate_api_key() {
 validate_model_override() {
   local model="$1"
 
-  # Allow empty string for intelligent routing
+  # Empty values fall back to adaptive/auto for backward compatibility
   if [ -z "$model" ]; then
     return 0
   fi
 
   # Validate format: provider/model_id
   if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-20250514, openai/gpt-4o) or empty string for intelligent routing"
+    log_error "Model format invalid. Use format: provider/model_id (e.g., anthropic/claude-sonnet-4-5, openai/gpt-5-codex) or use adaptive/auto for intelligent routing"
     return 1
   fi
   return 0
@@ -334,13 +334,13 @@ configure_codex() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='anthropic/claude-sonnet-4-20250514'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='anthropic/claude-sonnet-4-5'  # or adaptive/auto for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
     echo "   mkdir -p ~/.codex"
     echo "   cat > ~/.codex/config.toml << 'EOF'"
-    echo "model = \"\""
+    echo "model = \"adaptive/auto\""
     echo "model_provider = \"adaptive\""
     echo ""
     echo "[model_providers.adaptive]"
@@ -546,7 +546,7 @@ main() {
     echo ""
     echo "🚀 Quick Start:"
     echo "   codex                     # Start Codex with Adaptive routing"
-    echo "   codex --model \"\"           # Explicit intelligent routing"
+    echo "   codex --model adaptive/auto  # Explicit intelligent routing"
     echo ""
     echo "🔍 Verify Setup:"
     echo "   codex --version           # Check Codex installation"
@@ -556,7 +556,7 @@ main() {
     echo "💡 Usage Examples:"
     echo "   codex                     # Interactive mode"
     echo "   codex exec \"create a React component for user auth\""
-    echo "   codex --model anthropic/claude-sonnet-4-20250514"
+    echo "   codex --model anthropic/claude-sonnet-4-5"
     echo "   codex --sandbox read-only # Secure sandbox mode"
     echo ""
     echo "📊 Monitor Usage:"
@@ -566,7 +566,7 @@ main() {
     echo ""
     echo "💡 Pro Tips:"
     echo "   • Intelligent routing enabled by default for optimal cost/performance"
-    echo "   • Available models: anthropic/claude-sonnet-4-20250514, openai/gpt-4o, etc."
+    echo "   • Available models: anthropic/claude-sonnet-4-5, openai/gpt-5-codex, etc."
     echo "   • Use --sandbox workspace-write for file editing tasks"
     echo "   • Configure MCP servers for extended capabilities"
     echo "   • Create AGENTS.md for project-specific instructions"
@@ -598,7 +598,7 @@ main() {
     echo "   Configuration: ~/.codex/config.toml"
     echo "   Environment: export ADAPTIVE_API_KEY='your-key'"
     echo "   Expected config format:"
-    echo '   model = ""'
+    echo '   model = "adaptive/auto"'
     echo '   model_provider = "adaptive"'
     echo '   [model_providers.adaptive]'
     echo '   name = "Adaptive"'
