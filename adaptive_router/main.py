@@ -45,7 +45,9 @@ def extract_model_ids_from_profile(profile: RouterProfile) -> list[str]:
     return list(profile.llm_profiles.keys())
 
 
-async def create_model_router(settings: AppSettings) -> tuple[ModelRouter, RouterProfile]:
+async def create_model_router(
+    settings: AppSettings,
+) -> tuple[ModelRouter, RouterProfile]:
     """Create ModelRouter and return the loaded profile."""
     logger.info("Creating ModelRouter...")
 

@@ -31,7 +31,9 @@ def _build_model_indexes(
     for model in available_models:
         model_id = model.unique_id()
         if model_id in models_by_id:
-            logger.warning("Duplicate model '%s' detected in profile, using first entry", model_id)
+            logger.warning(
+                "Duplicate model '%s' detected in profile, using first entry", model_id
+            )
             continue
 
         models_by_id[model_id] = model
@@ -81,10 +83,16 @@ def resolve_models(
             suggestion_text = ""
             if suggestions:
                 preview = ", ".join(suggestions[:5])
-                suffix = "" if len(suggestions) <= 5 else f" (and {len(suggestions) - 5} more)"
+                suffix = (
+                    ""
+                    if len(suggestions) <= 5
+                    else f" (and {len(suggestions) - 5} more)"
+                )
                 suggestion_text = f". Available {author} models: {preview}{suffix}"
 
-            raise ValueError(f"Model '{spec}' not found in router profile{suggestion_text}")
+            raise ValueError(
+                f"Model '{spec}' not found in router profile{suggestion_text}"
+            )
 
         resolved_models.append(model)
 
