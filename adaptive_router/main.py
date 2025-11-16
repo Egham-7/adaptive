@@ -19,16 +19,12 @@ from adaptive_router.core.router import ModelRouter
 from adaptive_router.models.api import Model, ModelSelectionRequest
 from adaptive_router.models.storage import RouterProfile
 
-from app.models import (
-    ModelSelectionAPIRequest,
-)
+from app.models import ModelSelectionAPIRequest
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
 
-from app.utils import (
-    resolve_models,
-)
+from app.utils import resolve_models
 
 
 env_file = Path(".env")
@@ -45,23 +41,16 @@ logger = logging.getLogger(__name__)
 
 
 def extract_model_ids_from_profile(profile: RouterProfile) -> list[str]:
-    """Extract model IDs from a RouterProfile.
-
-    Args:
-        profile: RouterProfile object with llm_profiles
-
-    Returns:
-        List of model IDs (e.g., ["openai/gpt-4", "anthropic/claude-3"])
-    """
+    """Extract model IDs from a RouterProfile."""
     return list(profile.llm_profiles.keys())
 
 
-# Inlined from model_router_factory.py
 async def create_model_router(settings: AppSettings) -> tuple[ModelRouter, RouterProfile]:
     """Create ModelRouter and return the loaded profile."""
     logger.info("Creating ModelRouter...")
 
     from adaptive_router.models.storage import MinIOSettings
+    from adaptive_router.loaders.minio import MinIOProfileLoader
 
     minio_settings = MinIOSettings(
         endpoint_url=settings.minio_private_endpoint,
@@ -73,8 +62,6 @@ async def create_model_router(settings: AppSettings) -> tuple[ModelRouter, Route
         connect_timeout=int(settings.s3_connect_timeout),
         read_timeout=int(settings.s3_read_timeout),
     )
-
-    from adaptive_router.loaders.minio import MinIOProfileLoader
 
     loader = MinIOProfileLoader.from_settings(minio_settings)
     profile = loader.load_profile()
@@ -104,7 +91,6 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Lifespan event handler for startup/shutdown."""
         try:
-            # Initialize settings
             app_state.settings = AppSettings()
 
             logger.info(
@@ -147,7 +133,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure CORS
     def configure_cors() -> None:
         """Configure CORS middleware."""
         settings = app_state.settings or AppSettings()
@@ -161,7 +146,6 @@ def create_app() -> FastAPI:
 
     configure_cors()
 
-    # Dependencies
     @lru_cache()
     def get_settings() -> AppSettings:
         """Get application settings dependency."""
@@ -188,7 +172,6 @@ def create_app() -> FastAPI:
             raise RuntimeError("Router profile not loaded yet")
         return app_state.available_models
 
-    # Health check endpoint
     @app.get(
         "/health",
         response_model=HealthCheckResponse,
@@ -202,7 +185,6 @@ def create_app() -> FastAPI:
         """Comprehensive health check for router and profile models."""
         overall_status = HealthStatus.HEALTHY
 
-        # Check model inventory status
         if app_state.available_models:
             registry_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
@@ -215,7 +197,6 @@ def create_app() -> FastAPI:
                 message="Router profile not loaded",
             )
 
-        # Check router status
         if app_state.router is not None:
             router_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
@@ -238,7 +219,6 @@ def create_app() -> FastAPI:
             router=router_health,
         )
 
-    # Model selection endpoint
     @app.post(
         "/select-model",
         response_model=ModelSelectionAPIResponse,
@@ -254,23 +234,10 @@ def create_app() -> FastAPI:
         router: Annotated[ModelRouter, Depends(get_router)],
         available_models: Annotated[list[Model], Depends(get_available_models)],
     ) -> ModelSelectionAPIResponse:
-        """Select optimal model based on prompt analysis.
-
-        Args:
-            request: Model selection request with prompt and preferences
-            http_request: FastAPI request object for logging
-            router: Injected ModelRouter dependency
-
-        Returns:
-            ModelSelectionResponse with selected model and alternatives
-
-        Raises:
-            HTTPException: 400 for validation errors, 500 for server errors
-        """
+        """Select optimal model based on prompt analysis."""
         start_time = time.perf_counter()
 
         try:
-            # Resolve requested model identifiers to profile models
             resolved_models = None
             if request.models:
                 try:
@@ -282,7 +249,6 @@ def create_app() -> FastAPI:
                         detail=f"Model resolution failed: {e}",
                     ) from e
 
-            # Create internal request
             internal_request = ModelSelectionRequest(
                 prompt=request.prompt,
                 user_id=request.user_id,
@@ -316,7 +282,6 @@ def create_app() -> FastAPI:
                 },
             )
 
-            # Return simplified response with model IDs only
             selected_model_id = response.model_id
             alternative_model_ids = [alt.model_id for alt in response.alternatives]
 
