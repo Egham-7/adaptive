@@ -532,8 +532,8 @@ class Trainer:
             client = self._create_client(model, provider_config)
             outputs = await self._async_generate(client, missing_inputs, semaphore)
 
-            # Initialize result if model not in actual_outputs
-            if model_id not in result:
+            # Ensure result storage matches required length
+            if model_id not in result or len(result.get(model_id, [])) != n_samples:
                 result[model_id] = [""] * n_samples
 
             # Fill in the missing outputs
