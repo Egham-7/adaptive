@@ -25,14 +25,14 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from src.config import get_adaptive_config, get_swebench_config, settings
 from src.models import AdaptiveModel
+from src.models.base import SWEBenchInstanceMetrics
 from src.utils import ResultTracker
 from src.utils.dataset_loader import get_dataset_instances
 from src.utils.swebench_integration import SWEBenchClient, create_predictions_file
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,7 @@ def generate_predictions(
         Tuple of (predictions_list, result_tracker)
     """
     predictions = []
-    tracker = ResultTracker(
-        model_name=model.get_model_name(),
-        dataset="swe-bench_lite"
-    )
+    tracker = ResultTracker(model_name=model.get_model_name(), dataset="swe-bench_lite")
 
     logger.info(f"\n{'='*70}")
     logger.info(f"Generating predictions for {len(instances)} instances")
@@ -86,10 +83,9 @@ def generate_predictions(
 
             # Add to predictions if patch was generated
             if metrics.patch_generated and metrics.patch_content:
-                predictions.append({
-                    "instance_id": instance_id,
-                    "model_patch": metrics.patch_content
-                })
+                predictions.append(
+                    {"instance_id": instance_id, "model_patch": metrics.patch_content}
+                )
 
                 logger.info(
                     f"  ✓ Patch generated | "
@@ -98,18 +94,12 @@ def generate_predictions(
                     f"Model: {metrics.generation_metrics.model_used}"
                 )
             else:
-                logger.warning(f"  ✗ Failed to generate patch")
-                predictions.append({
-                    "instance_id": instance_id,
-                    "model_patch": ""  # Empty patch
-                })
+                logger.warning("  ✗ Failed to generate patch")
+                predictions.append({"instance_id": instance_id, "model_patch": ""})  # Empty patch
 
         except Exception as e:
             logger.error(f"  ✗ Error: {str(e)}")
-            predictions.append({
-                "instance_id": instance_id,
-                "model_patch": ""
-            })
+            predictions.append({"instance_id": instance_id, "model_patch": ""})
 
     # Add model selection stats
     tracker.set_model_selection_stats(model.get_model_selection_stats())
@@ -122,10 +112,7 @@ def generate_predictions(
 
 
 async def generate_predictions_async(
-    model: AdaptiveModel,
-    instances: list[dict],
-    temperature: float,
-    max_tokens: int
+    model: AdaptiveModel, instances: list[dict], temperature: float, max_tokens: int
 ) -> tuple[list[dict], ResultTracker]:
     """
     Generate predictions asynchronously for all instances using Adaptive routing.
@@ -140,10 +127,7 @@ async def generate_predictions_async(
         Tuple of (predictions list, ResultTracker)
     """
     predictions = []
-    tracker = ResultTracker(
-        model_name=model.get_model_name(),
-        dataset="swe-bench_lite"
-    )
+    tracker = ResultTracker(model_name=model.get_model_name(), dataset="swe-bench_lite")
 
     logger.info(f"\n{'='*70}")
     logger.info(f"Generating predictions for {len(instances)} instances (async)")
@@ -173,20 +157,16 @@ async def generate_predictions_async(
 
         if isinstance(result, Exception):
             logger.error(f"  ✗ Error: {str(result)}")
-            predictions.append({
-                "instance_id": instance_id,
-                "model_patch": ""
-            })
-        else:
+            predictions.append({"instance_id": instance_id, "model_patch": ""})
+        elif isinstance(result, SWEBenchInstanceMetrics):
             # Add to tracker
             tracker.add_instance_result(result)
 
             # Add to predictions
             if result.patch_generated and result.patch_content:
-                predictions.append({
-                    "instance_id": instance_id,
-                    "model_patch": result.patch_content
-                })
+                predictions.append(
+                    {"instance_id": instance_id, "model_patch": result.patch_content}
+                )
                 logger.info(
                     f"  ✓ Patch generated | "
                     f"Cost: ${result.total_cost:.4f} | "
@@ -194,11 +174,8 @@ async def generate_predictions_async(
                     f"Model: {result.generation_metrics.model_used}"
                 )
             else:
-                logger.warning(f"  ✗ Failed to generate patch")
-                predictions.append({
-                    "instance_id": instance_id,
-                    "model_patch": ""
-                })
+                logger.warning("  ✗ Failed to generate patch")
+                predictions.append({"instance_id": instance_id, "model_patch": ""})
 
     # Add model selection stats
     tracker.set_model_selection_stats(model.get_model_selection_stats())
@@ -218,57 +195,27 @@ def main() -> int:
 
     # Benchmark mode
     mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--quick", action="store_true", help="Quick test with 5 instances")
+    mode_group.add_argument("--medium", action="store_true", help="Medium test with 50 instances")
     mode_group.add_argument(
-        "--quick",
-        action="store_true",
-        help="Quick test with 5 instances"
-    )
-    mode_group.add_argument(
-        "--medium",
-        action="store_true",
-        help="Medium test with 50 instances"
-    )
-    mode_group.add_argument(
-        "--full",
-        action="store_true",
-        help="Full benchmark with all 300 instances"
+        "--full", action="store_true", help="Full benchmark with all 300 instances"
     )
 
     # Configuration options
+    parser.add_argument("--max-instances", type=int, help="Maximum number of instances to test")
+    parser.add_argument("--temperature", type=float, help="Generation temperature")
+    parser.add_argument("--max-tokens", type=int, help="Maximum tokens to generate")
     parser.add_argument(
-        "--max-instances",
-        type=int,
-        help="Maximum number of instances to test"
+        "--cost-bias", type=float, help="Adaptive cost bias (0.0=best performance, 1.0=cheapest)"
     )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        help="Generation temperature"
-    )
-    parser.add_argument(
-        "--max-tokens",
-        type=int,
-        help="Maximum tokens to generate"
-    )
-    parser.add_argument(
-        "--cost-bias",
-        type=float,
-        help="Adaptive cost bias (0.0=best performance, 1.0=cheapest)"
-    )
-    parser.add_argument(
-        "--run-id",
-        type=str,
-        help="Custom run ID (default: adaptive_TIMESTAMP)"
-    )
+    parser.add_argument("--run-id", type=str, help="Custom run ID (default: adaptive_TIMESTAMP)")
     parser.add_argument(
         "--skip-submit",
         action="store_true",
-        help="Skip submission to SWE-bench (only generate predictions)"
+        help="Skip submission to SWE-bench (only generate predictions)",
     )
     parser.add_argument(
-        "--wait",
-        action="store_true",
-        help="Wait for evaluation results before exiting"
+        "--wait", action="store_true", help="Wait for evaluation results before exiting"
     )
 
     args = parser.parse_args()
@@ -317,19 +264,20 @@ def main() -> int:
         )
 
         # Load dataset instances
-        logger.info(f"Loading SWE-bench Lite dataset...")
+        logger.info("Loading SWE-bench Lite dataset...")
         instances = get_dataset_instances(
-            dataset="lite",
-            max_instances=swebench_config.max_instances
+            dataset="lite", max_instances=swebench_config.max_instances
         )
 
         # Generate predictions (async)
-        predictions, tracker = asyncio.run(generate_predictions_async(
-            model=model,
-            instances=instances,
-            temperature=swebench_config.temperature,
-            max_tokens=swebench_config.max_tokens,
-        ))
+        predictions, tracker = asyncio.run(
+            generate_predictions_async(
+                model=model,
+                instances=instances,
+                temperature=swebench_config.temperature,
+                max_tokens=swebench_config.max_tokens,
+            )
+        )
 
         # Print generation summary
         tracker.print_summary()
@@ -358,6 +306,10 @@ def main() -> int:
             logger.info("Submitting to SWE-bench for evaluation...")
             logger.info(f"{'='*70}\n")
 
+            if swebench_config.api_key is None:
+                logger.error("SWE-bench API key not configured")
+                return 1
+
             client = SWEBenchClient(api_key=swebench_config.api_key)
 
             # Test connection first
@@ -374,14 +326,16 @@ def main() -> int:
             )
 
             if success:
-                logger.info(f"\n✓ Submitted successfully!")
+                logger.info("\n✓ Submitted successfully!")
                 logger.info(f"\nRun ID: {run_id}")
-                logger.info(f"\nTo check results later, run:")
-                logger.info(f"  sb-cli get-report {swebench_config.dataset} {swebench_config.split} {run_id}")
+                logger.info("\nTo check results later, run:")
+                logger.info(
+                    f"  sb-cli get-report {swebench_config.dataset} {swebench_config.split} {run_id}"
+                )
 
                 # Wait for results if requested
                 if args.wait:
-                    logger.info(f"\nWaiting for evaluation results...")
+                    logger.info("\nWaiting for evaluation results...")
                     report = client.wait_for_results(
                         dataset=swebench_config.dataset,
                         split=swebench_config.split,
@@ -391,7 +345,7 @@ def main() -> int:
                     )
 
                     if report:
-                        logger.info(f"\n✓ Evaluation complete!")
+                        logger.info("\n✓ Evaluation complete!")
                         logger.info(json.dumps(report, indent=2))
 
                         # Save report

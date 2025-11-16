@@ -64,9 +64,7 @@ class PricingCalculator:
             pricing = (1.00, 1.00)  # Default fallback
 
         input_price, output_price = pricing
-        cost = (input_tokens * input_price / 1_000_000) + (
-            output_tokens * output_price / 1_000_000
-        )
+        cost = (input_tokens * input_price / 1_000_000) + (output_tokens * output_price / 1_000_000)
         return cost
 
 

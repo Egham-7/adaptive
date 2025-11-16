@@ -151,7 +151,7 @@ class BenchmarkSettings:
         print(f"    Max instances:            {self.swebench.max_instances} (of 300 total)")
         print(f"    Temperature:              {self.swebench.temperature}")
         print(f"    Max tokens:               {self.swebench.max_tokens}")
-        print(f"    Evaluation:               Cloud-based (sb-cli)")
+        print("    Evaluation:               Cloud-based (sb-cli)")
         print(f"    Results folder:           {self.swebench.results_folder}")
 
         print("\n  Adaptive Router:")
@@ -160,7 +160,7 @@ class BenchmarkSettings:
             print(f"      - Cost bias:            {self.adaptive.cost_bias}")
             print(f"      - Models:               {', '.join(self.adaptive.models)}")
         else:
-            print(f"    Models:                   Auto (server default)")
+            print("    Models:                   Auto (server default)")
             print(f"      - Cost bias:            {self.adaptive.cost_bias}")
 
         print("\n" + "=" * 70 + "\n")

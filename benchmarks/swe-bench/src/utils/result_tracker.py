@@ -72,9 +72,7 @@ class ResultTracker:
 
         # Aggregate token metrics
         total_input_tokens = sum(m.generation_metrics.input_tokens for m in self.instance_results)
-        total_output_tokens = sum(
-            m.generation_metrics.output_tokens for m in self.instance_results
-        )
+        total_output_tokens = sum(m.generation_metrics.output_tokens for m in self.instance_results)
         total_tokens = total_input_tokens + total_output_tokens
 
         # Aggregate cost

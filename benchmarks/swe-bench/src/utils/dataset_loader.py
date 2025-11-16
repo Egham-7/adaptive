@@ -25,7 +25,8 @@ def load_dataset_from_file(dataset_path: Path, max_instances: int = -1) -> list[
     """
     try:
         with open(dataset_path) as f:
-            instances = json.load(f)
+            data = json.load(f)
+            instances: list[dict[str, Any]] = list(data) if isinstance(data, list) else []
 
         logger.info(f"Loaded {len(instances)} instances from {dataset_path}")
 
@@ -77,12 +78,12 @@ def download_dataset(dataset: str, output_dir: Path = Path("data")) -> Path:
     logger.info(f"Dataset {dataset_name} not found locally.")
     logger.info("\nTo download the dataset, you have two options:")
     logger.info("\n1. Download from Hugging Face:")
-    logger.info(f"   - Visit: https://huggingface.co/datasets/princeton-nlp/SWE-bench")
+    logger.info("   - Visit: https://huggingface.co/datasets/princeton-nlp/SWE-bench")
     logger.info(f"   - Download the {dataset_name} split")
     logger.info(f"   - Save to: {output_file}")
     logger.info("\n2. Use the SWE-bench repository:")
-    logger.info(f"   git clone https://github.com/princeton-nlp/SWE-bench")
-    logger.info(f"   # Follow instructions in their README to download datasets")
+    logger.info("   git clone https://github.com/princeton-nlp/SWE-bench")
+    logger.info("   # Follow instructions in their README to download datasets")
 
     raise FileNotFoundError(
         f"Dataset {dataset_name} not found. Please download it to {output_file}"
@@ -155,7 +156,7 @@ def get_instance_summary(instances: list[dict[str, Any]]) -> dict[str, Any]:
         Dictionary with summary stats
     """
     repos = set()
-    avg_problem_length = 0
+    avg_problem_length: float = 0
 
     for instance in instances:
         if "repo" in instance:

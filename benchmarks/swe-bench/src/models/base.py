@@ -178,9 +178,11 @@ class BenchmarkRun:
             "execution_time": {
                 "total_seconds": round(self.total_execution_time_seconds, 2),
                 "avg_seconds_per_instance": round(
-                    self.total_execution_time_seconds / self.total_instances
-                    if self.total_instances > 0
-                    else 0,
+                    (
+                        self.total_execution_time_seconds / self.total_instances
+                        if self.total_instances > 0
+                        else 0
+                    ),
                     2,
                 ),
             },

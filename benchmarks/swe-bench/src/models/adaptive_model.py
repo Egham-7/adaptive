@@ -21,7 +21,7 @@ from tenacity import (
 )
 
 from ..utils.response_parser import parse_adaptive_response
-from .base import BaseSWEBenchModel, ResponseMetrics
+from .base import BaseSWEBenchModel, ResponseMetrics, SWEBenchInstanceMetrics
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +66,7 @@ class AdaptiveModel(BaseSWEBenchModel):
                 "variable or pass api_key parameter."
             )
 
-        self.api_base = api_base or os.getenv(
-            "ADAPTIVE_BASE_URL", "https://api.llmadaptive.uk/v1"
-        )
+        self.api_base = api_base or os.getenv("ADAPTIVE_BASE_URL", "https://api.llmadaptive.uk/v1")
 
         # Initialize OpenAI clients (both sync and async)
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_base)
@@ -120,9 +118,9 @@ class AdaptiveModel(BaseSWEBenchModel):
             prompt = self._build_patch_prompt(problem_statement, repo_context)
 
             # Build model_router config
-            model_router_config = {
+            model_router_config: dict[str, Any] = {
                 "cost_bias": self.cost_bias,
-                "use_cache": False  # Disable caching
+                "use_cache": False,  # Disable caching
             }
             if self.models is not None:
                 model_router_config["models"] = self.models
@@ -139,9 +137,7 @@ class AdaptiveModel(BaseSWEBenchModel):
                 ],
                 temperature=temperature,
                 max_tokens=max_tokens,
-                extra_body={
-                    "model_router": model_router_config
-                },
+                extra_body={"model_router": model_router_config},
             )
 
             # Extract generated patch from response
@@ -170,8 +166,7 @@ class AdaptiveModel(BaseSWEBenchModel):
             )
 
             self.logger.debug(
-                f"Adaptive selected {selected_model}: "
-                f"{output_tokens} tokens, cost: ${cost:.6f}"
+                f"Adaptive selected {selected_model}: " f"{output_tokens} tokens, cost: ${cost:.6f}"
             )
 
             return patch_content, metrics
@@ -279,9 +274,9 @@ Generate the patch now:
                     prompt = self._build_patch_prompt(problem_statement, repo_context)
 
                     # Build model_router config
-                    model_router_config = {
+                    model_router_config: dict[str, Any] = {
                         "cost_bias": self.cost_bias,
-                        "use_cache": False  # Disable caching
+                        "use_cache": False,  # Disable caching
                     }
                     if self.models is not None:
                         model_router_config["models"] = self.models
@@ -298,9 +293,7 @@ Generate the patch now:
                         ],
                         temperature=temperature,
                         max_tokens=max_tokens,
-                        extra_body={
-                            "model_router": model_router_config
-                        },
+                        extra_body={"model_router": model_router_config},
                     )
 
                     # Extract generated patch from response
@@ -358,7 +351,7 @@ Generate the patch now:
         repo_context: str = "",
         temperature: float = 0.2,
         max_tokens: int = 4096,
-    ) -> "SWEBenchInstanceMetrics":
+    ) -> SWEBenchInstanceMetrics:
         """
         Solve a single SWE-bench instance asynchronously.
 

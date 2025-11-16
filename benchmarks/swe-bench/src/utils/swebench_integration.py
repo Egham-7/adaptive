@@ -79,7 +79,7 @@ class SWEBenchClient:
             True if submission successful
         """
         try:
-            logger.info(f"Submitting predictions to SWE-bench...")
+            logger.info("Submitting predictions to SWE-bench...")
             logger.info(f"  Dataset: {dataset} ({split})")
             logger.info(f"  Run ID: {run_id}")
             logger.info(f"  Predictions: {predictions_path}")
@@ -172,7 +172,7 @@ class SWEBenchClient:
                     with open(output_path, "w") as f:
                         json.dump(report, f, indent=2)
 
-                return report
+                return dict(report)
             else:
                 logger.warning(f"Could not retrieve report: {result.stderr}")
                 return None
@@ -278,9 +278,7 @@ class SWEBenchClient:
             return []
 
 
-def create_predictions_file(
-    predictions: list[dict[str, str]], output_path: Path
-) -> None:
+def create_predictions_file(predictions: list[dict[str, str]], output_path: Path) -> None:
     """
     Create predictions file in SWE-bench format.
 
