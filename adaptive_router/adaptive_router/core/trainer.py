@@ -581,7 +581,9 @@ class Trainer:
             return model_id, outputs
 
         # Run all models concurrently
-        model_results = await asyncio.gather(*[run_model(model) for model in self.models])
+        model_results = await asyncio.gather(
+            *[run_model(model) for model in self.models]
+        )
 
         # Convert to dict
         results = {model_id: outputs for model_id, outputs in model_results}
