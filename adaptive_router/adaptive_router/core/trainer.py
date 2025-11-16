@@ -11,7 +11,7 @@ import time
 from typing import Any
 
 import numpy as np
-import pandas as pd
+import polars as pl
 from deepeval.dataset import Golden
 from deepeval.models import DeepEvalBaseLLM
 
@@ -147,7 +147,7 @@ class Trainer:
             KeyError: If specified columns don't exist in CSV
         """
         logger.info(f"Loading training data from CSV: {path}")
-        df = pd.read_csv(path)
+        df = pl.read_csv(path)
         return self.train_from_dataframe(
             df, input_column, expected_output_column, actual_output_column
         )
@@ -234,15 +234,15 @@ class Trainer:
 
     def train_from_dataframe(
         self,
-        df: pd.DataFrame,
+        df: pl.DataFrame,
         input_column: str,
         expected_output_column: str,
         actual_output_column: str | None = None,
     ) -> TrainingResult:
-        """Train from pandas DataFrame.
+        """Train from polars DataFrame.
 
         Args:
-            df: Pandas DataFrame containing training data
+            df: Polars DataFrame containing training data
             input_column: Column name containing input/question text
             expected_output_column: Column name containing expected/correct output
             actual_output_column: Optional column with pre-computed model outputs
@@ -256,18 +256,18 @@ class Trainer:
         logger.info(f"Loading training data from DataFrame ({len(df)} rows)")
 
         try:
-            inputs = df[input_column].astype(str).tolist()
-            expected = df[expected_output_column].astype(str).tolist()
-        except KeyError as e:
-            raise KeyError(f"Column {e} not found in DataFrame") from e
+            inputs = df[input_column].cast(pl.Utf8).to_list()
+            expected = df[expected_output_column].cast(pl.Utf8).to_list()
+        except Exception as e:
+            raise KeyError(f"Column not found in DataFrame: {e}") from e
 
         actuals = None
         if actual_output_column:
             try:
-                actual_values = df[actual_output_column].astype(str).tolist()
+                actual_values = df[actual_output_column].cast(pl.Utf8).to_list()
                 actuals = {m.unique_id(): actual_values for m in self.models}
-            except KeyError as e:
-                raise KeyError(f"Column {e} not found in DataFrame") from e
+            except Exception as e:
+                raise KeyError(f"Column not found in DataFrame: {e}") from e
 
         return self._train(inputs, expected, actuals)
 
@@ -329,7 +329,7 @@ class Trainer:
 
         logger.info(f"Loading training data from HuggingFace: {dataset_name} ({split})")
         dataset = load_dataset(dataset_name, split=split)
-        df = dataset.to_pandas()
+        df = pl.from_pandas(dataset.to_pandas())
 
         return self.train_from_dataframe(
             df, input_column, expected_output_column, actual_output_column

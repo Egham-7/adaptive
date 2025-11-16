@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 import pytest
 
 from adaptive_router.loaders.local import LocalFileProfileLoader
@@ -80,8 +80,8 @@ def csv_profile_file(tmp_path, valid_profile_data) -> Path:
 def parquet_profile_file(tmp_path, valid_profile_data) -> Path:
     """Create a temporary Parquet profile file."""
     file_path = tmp_path / "test_profile.parquet"
-    df = pd.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
-    df.to_parquet(file_path, index=False)
+    df = pl.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
+    df.write_parquet(file_path)
     return file_path
 
 

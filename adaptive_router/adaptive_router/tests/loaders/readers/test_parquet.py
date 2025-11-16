@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-import pandas as pd
+import polars as pl
 import pytest
 
 from adaptive_router.loaders.readers.parquet import ParquetProfileReader
@@ -64,8 +64,8 @@ def sample_profile(valid_profile_data) -> RouterProfile:
 def parquet_profile_file(tmp_path, valid_profile_data) -> Path:
     """Create a temporary Parquet profile file."""
     file_path = tmp_path / "test_profile.parquet"
-    df = pd.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
-    df.to_parquet(file_path, index=False)
+    df = pl.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
+    df.write_parquet(file_path)
     return file_path
 
 
@@ -92,8 +92,8 @@ class TestParquetProfileReader:
     def test_read_from_path_empty_parquet(self, tmp_path):
         """Test read_from_path raises ValueError for empty Parquet file."""
         empty_file = tmp_path / "empty.parquet"
-        df = pd.DataFrame()
-        df.to_parquet(empty_file, index=False)
+        df = pl.DataFrame()
+        df.write_parquet(empty_file)
 
         reader = ParquetProfileReader()
         with pytest.raises(ValueError, match="Parquet file.*is empty"):
@@ -102,8 +102,8 @@ class TestParquetProfileReader:
     def test_read_from_path_missing_format_column(self, tmp_path):
         """Test read_from_path raises ValueError for missing format column."""
         invalid_file = tmp_path / "invalid.parquet"
-        df = pd.DataFrame([{"data": "some data"}])  # Missing format column
-        df.to_parquet(invalid_file, index=False)
+        df = pl.DataFrame([{"data": "some data"}])  # Missing format column
+        df.write_parquet(invalid_file)
 
         reader = ParquetProfileReader()
         with pytest.raises(ValueError, match="missing 'format' column"):
@@ -112,8 +112,8 @@ class TestParquetProfileReader:
     def test_read_from_path_wrong_format_value(self, tmp_path):
         """Test read_from_path raises ValueError for wrong format value."""
         invalid_file = tmp_path / "invalid.parquet"
-        df = pd.DataFrame([{"format": "xml", "data": "some data"}])  # Wrong format
-        df.to_parquet(invalid_file, index=False)
+        df = pl.DataFrame([{"format": "xml", "data": "some data"}])  # Wrong format
+        df.write_parquet(invalid_file)
 
         reader = ParquetProfileReader()
         with pytest.raises(ValueError, match="Unsupported format"):
@@ -122,8 +122,8 @@ class TestParquetProfileReader:
     def test_read_from_path_missing_data_column(self, tmp_path):
         """Test read_from_path raises ValueError for missing data column."""
         invalid_file = tmp_path / "invalid.parquet"
-        df = pd.DataFrame([{"format": "json"}])  # Missing data column
-        df.to_parquet(invalid_file, index=False)
+        df = pl.DataFrame([{"format": "json"}])  # Missing data column
+        df.write_parquet(invalid_file)
 
         reader = ParquetProfileReader()
         with pytest.raises(ValueError, match="missing 'data' column"):
@@ -132,8 +132,8 @@ class TestParquetProfileReader:
     def test_read_from_path_invalid_json_in_data(self, tmp_path):
         """Test read_from_path raises ValueError for invalid JSON in data column."""
         invalid_file = tmp_path / "invalid.parquet"
-        df = pd.DataFrame([{"format": "json", "data": "{invalid json"}])
-        df.to_parquet(invalid_file, index=False)
+        df = pl.DataFrame([{"format": "json", "data": "{invalid json"}])
+        df.write_parquet(invalid_file)
 
         reader = ParquetProfileReader()
         with pytest.raises(ValueError, match="Invalid JSON data"):
@@ -141,11 +141,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_valid_parquet(self, valid_profile_data, sample_profile):
         """Test reading valid Parquet profile from bytes."""
-        df = pd.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
+        df = pl.DataFrame([{"format": "json", "data": json.dumps(valid_profile_data)}])
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         parquet_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
@@ -156,11 +156,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_empty_parquet(self):
         """Test read_from_bytes raises ValueError for empty Parquet data."""
-        df = pd.DataFrame()
+        df = pl.DataFrame()
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         empty_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
@@ -169,11 +169,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_missing_format_column(self):
         """Test read_from_bytes raises ValueError for missing format column."""
-        df = pd.DataFrame([{"data": "some data"}])  # Missing format column
+        df = pl.DataFrame([{"data": "some data"}])  # Missing format column
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         invalid_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
@@ -182,11 +182,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_wrong_format_value(self):
         """Test read_from_bytes raises ValueError for wrong format value."""
-        df = pd.DataFrame([{"format": "xml", "data": "some data"}])  # Wrong format
+        df = pl.DataFrame([{"format": "xml", "data": "some data"}])  # Wrong format
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         invalid_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
@@ -195,11 +195,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_missing_data_column(self):
         """Test read_from_bytes raises ValueError for missing data column."""
-        df = pd.DataFrame([{"format": "json"}])  # Missing data column
+        df = pl.DataFrame([{"format": "json"}])  # Missing data column
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         invalid_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
@@ -208,11 +208,11 @@ class TestParquetProfileReader:
 
     def test_read_from_bytes_invalid_json_in_data(self):
         """Test read_from_bytes raises ValueError for invalid JSON in data column."""
-        df = pd.DataFrame([{"format": "json", "data": "{invalid json"}])
+        df = pl.DataFrame([{"format": "json", "data": "{invalid json"}])
         import io
 
         buffer = io.BytesIO()
-        df.to_parquet(buffer, index=False)
+        df.write_parquet(buffer)
         invalid_bytes = buffer.getvalue()
 
         reader = ParquetProfileReader()
