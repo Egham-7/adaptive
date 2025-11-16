@@ -456,7 +456,7 @@ class ModelRouter:
 
         # Route the question - all routing logic inline now
         # 1. Assign to cluster
-        cluster_id, _ = self.cluster_engine.assign_question(request.prompt)
+        cluster_id, _ = self.cluster_engine.assign_single(request.prompt)
 
         # 2. Calculate lambda parameter
         lambda_param = self._calculate_lambda(cost_preference)
