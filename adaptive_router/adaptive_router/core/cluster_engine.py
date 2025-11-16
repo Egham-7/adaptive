@@ -1,28 +1,78 @@
-"""Unified clustering engine for semantic clustering of coding questions."""
+"""Clustering engine for semantic clustering of text inputs.
 
-import json
+Simplified for better DX with Trainer and ModelRouter - accepts only strings.
+"""
+
 import logging
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from pydantic import BaseModel
+import numpy.typing as npt
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import normalize
 from sklearn.utils.validation import check_is_fitted
 
-from adaptive_router.models import CodeQuestion
 from adaptive_router.core.feature_extractor import FeatureExtractor
-from adaptive_router.exceptions.core import ClusterNotFittedError
-from sklearn.preprocessing import normalize
+from adaptive_router.exceptions.core import (
+    ClusterNotConfiguredError,
+    ClusterNotFittedError,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class ClusterEngine(BaseEstimator):
-    """Unified engine for clustering questions using K-means on hybrid features."""
+class ClusterStats(BaseModel):
+    n_clusters: int
+    n_samples: int
+    silhouette_score: float
+    cluster_sizes: dict[int, int]
+    min_cluster_size: int
+    max_cluster_size: int
+    avg_cluster_size: float
 
-    def __init__(
+
+class ClusterEngine(BaseEstimator):
+    """Engine for clustering text inputs using K-means on hybrid features.
+
+    This class handles the clustering workflow for the adaptive router:
+    1. Extracts hybrid features (embeddings + TF-IDF) from text
+    2. Performs spherical K-means clustering (cosine similarity)
+    3. Assigns new texts to clusters
+
+    Example:
+        >>> engine = ClusterEngine().configure(n_clusters=5)
+        >>> engine.fit(["question 1", "question 2", ...])
+        >>> cluster_ids = engine.predict(["new question"])
+    """
+
+    def __init__(self) -> None:
+        """Initialize empty ClusterEngine.
+
+        Call configure() before training, or set attributes directly for restoration.
+        This lightweight initialization allows router restoration without loading models.
+        """
+        # Configuration (set by configure() or manual restoration)
+        self.n_clusters: int | None = None
+        self.max_iter: int | None = None
+        self.random_state: int | None = None
+        self.n_init: int | None = None
+        self.embedding_model: str | None = None
+        self.tfidf_max_features: int | None = None
+        self.tfidf_ngram_range: tuple[int, int] | None = None
+        self.allow_trust_remote_code: bool = False
+
+        # Components (initialized by configure() or set during restoration)
+        self.feature_extractor: FeatureExtractor | None = None
+        self.kmeans: KMeans | None = None
+
+        # Fitted state
+        self.cluster_assignments: npt.NDArray[np.int32] = np.array([], dtype=np.int32)
+        self.silhouette: float = 0.0
+        self._is_fitted: bool = False
+
+    def configure(
         self,
         n_clusters: int = 20,
         max_iter: int = 300,
@@ -30,9 +80,12 @@ class ClusterEngine(BaseEstimator):
         n_init: int = 10,
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features: int = 5000,
-        tfidf_ngram_range: Tuple[int, int] = (1, 2),
-    ) -> None:
-        """Initialize clustering engine.
+        tfidf_ngram_range: tuple[int, int] = (1, 2),
+        allow_trust_remote_code: bool = False,
+    ) -> "ClusterEngine":
+        """Configure cluster engine for training.
+
+        Must be called before fit(). Not needed when restoring from saved state.
 
         Args:
             n_clusters: Number of clusters (K)
@@ -41,9 +94,13 @@ class ClusterEngine(BaseEstimator):
             n_init: Number of K-means runs with different centroid seeds
             embedding_model: HuggingFace model for semantic embeddings
             tfidf_max_features: Maximum TF-IDF features
-            tfidf_ngram_range: N-gram range for TF-IDF
+            tfidf_ngram_range: N-gram range for TF-IDF (e.g., (1, 2) for unigrams and bigrams)
+            allow_trust_remote_code: Allow remote code execution in embedding models
+                WARNING: Only enable for trusted models
+
+        Returns:
+            Self for method chaining
         """
-        # Store parameters for saving/loading
         self.n_clusters = n_clusters
         self.max_iter = max_iter
         self.random_state = random_state
@@ -51,309 +108,213 @@ class ClusterEngine(BaseEstimator):
         self.embedding_model = embedding_model
         self.tfidf_max_features = tfidf_max_features
         self.tfidf_ngram_range = tfidf_ngram_range
+        self.allow_trust_remote_code = allow_trust_remote_code
 
-        # Feature extractor
+        # Initialize heavyweight components
+        self._initialize_components()
+        return self
+
+    def _initialize_components(self) -> None:
+        """Initialize FeatureExtractor and KMeans (internal use).
+
+        Raises:
+            ClusterNotConfiguredError: If configuration parameters not set
+        """
+        if (
+            self.n_clusters is None
+            or self.embedding_model is None
+            or self.tfidf_max_features is None
+            or self.tfidf_ngram_range is None
+            or self.max_iter is None
+            or self.random_state is None
+            or self.n_init is None
+        ):
+            raise ClusterNotConfiguredError(
+                "Configuration incomplete. Call configure() before initializing components."
+            )
+
+        logger.info(f"Initializing ClusterEngine with {self.n_clusters} clusters")
+
+        # Feature extractor for hybrid features
         self.feature_extractor = FeatureExtractor(
-            embedding_model=embedding_model,
-            tfidf_max_features=tfidf_max_features,
-            tfidf_ngram_range=tfidf_ngram_range,
+            embedding_model=self.embedding_model,
+            tfidf_max_features=self.tfidf_max_features,
+            tfidf_ngram_range=self.tfidf_ngram_range,
+            allow_trust_remote_code=self.allow_trust_remote_code,
         )
 
-        # K-means clusterer with spherical k-means (normalize features)
-        # This uses cosine similarity instead of Euclidean distance
+        # K-means clusterer (spherical k-means via L2 normalization)
         self.kmeans = KMeans(
-            n_clusters=n_clusters,
-            max_iter=max_iter,
-            random_state=random_state,
-            n_init=n_init,
+            n_clusters=self.n_clusters,
+            max_iter=self.max_iter,
+            random_state=self.random_state,
+            n_init=self.n_init,
             verbose=0,
-            algorithm="lloyd",  # Use Lloyd algorithm for better convergence
+            algorithm="lloyd",
         )
 
-        self.cluster_assignments: np.ndarray = np.array([])
-        self.silhouette: float = 0.0
+    def _check_configured(self) -> None:
+        """Check if engine is configured with required components.
 
-    def fit(self, questions: List[CodeQuestion]) -> "ClusterEngine":
-        """Fit clustering model on questions.
+        Raises:
+            ClusterNotConfiguredError: If components not initialized
+        """
+        if self.feature_extractor is None or self.kmeans is None:
+            raise ClusterNotConfiguredError(
+                "ClusterEngine not configured. Call configure() before use, "
+                "or set components manually during restoration."
+            )
+
+    @property
+    def is_fitted(self) -> bool:
+        """Check if the engine has been fitted."""
+        return self._is_fitted
+
+    def fit(self, inputs: list[str]) -> "ClusterEngine":
+        """Fit clustering model on text inputs.
 
         Args:
-            questions: List of CodeQuestion objects
+            inputs: List of text strings to cluster
 
         Returns:
             Self for method chaining
+
+        Raises:
+            ClusterNotConfiguredError: If configure() not called
+            ValueError: If inputs list is empty
         """
-        logger.info(f"Fitting clustering model on {len(questions)} questions...")
+        self._check_configured()
+        assert self.feature_extractor is not None  # For mypy
+        assert self.kmeans is not None  # For mypy
+
+        if not inputs:
+            raise ValueError("inputs cannot be empty")
+
+        logger.info(f"Fitting clustering model on {len(inputs)} inputs")
 
         # Extract hybrid features
-        features = self.feature_extractor.fit_transform(questions)
+        features = self.feature_extractor.fit_transform(inputs)
 
-        # Normalize features for spherical k-means (cosine similarity)
-        features = normalize(features, norm="l2")
+        # Normalize for spherical k-means (cosine similarity)
+        features_normalized = normalize(features, norm="l2", copy=False)
 
         # Perform K-means clustering
-        self.kmeans.fit(features)
-        self.cluster_assignments = self.kmeans.labels_
+        self.kmeans.fit(features_normalized)
+        self.cluster_assignments = self.kmeans.labels_.astype(np.int32)
 
         # Compute silhouette score
         unique_labels = np.unique(self.cluster_assignments)
 
         if len(unique_labels) > 1:
             self.silhouette = float(
-                silhouette_score(features, self.cluster_assignments)
+                silhouette_score(features_normalized, self.cluster_assignments)
             )
+            logger.info(f"Clustering complete. Silhouette score: {self.silhouette:.3f}")
         else:
-            self.silhouette = float("nan")
+            self.silhouette = 0.0
             logger.warning(
-                "Silhouette score is undefined: all points assigned to a single cluster"
+                "All points assigned to single cluster - silhouette score undefined"
             )
 
-        logger.info(f"Clustering complete! Silhouette score: {self.silhouette:.3f}")
-
+        self._is_fitted = True
         return self
 
-    def predict(self, questions: List[CodeQuestion]) -> np.ndarray:
-        """Predict cluster assignments for new questions.
+    def predict(self, inputs: list[str]) -> npt.NDArray[np.int32]:
+        """Predict cluster assignments for new text inputs.
 
         Args:
-            questions: List of CodeQuestion objects
+            inputs: List of text strings to assign to clusters
 
         Returns:
-            Numpy array of cluster IDs
+            Array of cluster IDs (integers)
 
         Raises:
-            ValueError: If predict is called before fit
+            ClusterNotConfiguredError: If configure() not called
+            ClusterNotFittedError: If predict is called before fit
         """
+        self._check_configured()
+        assert self.feature_extractor is not None  # For mypy
+        assert self.kmeans is not None  # For mypy
+
+        if not self._is_fitted:
+            raise ClusterNotFittedError("Must call fit() before predict()")
+
         check_is_fitted(self, ["kmeans"])
 
         # Extract features
-        features = self.feature_extractor.transform(questions)
+        features = self.feature_extractor.transform(inputs)
 
-        # Normalize features for spherical k-means (cosine similarity)
-        from sklearn.preprocessing import normalize
-
-        features = normalize(features, norm="l2")
+        # Normalize for spherical k-means
+        features_normalized = normalize(features, norm="l2", copy=False)
 
         # Predict clusters
-        return self.kmeans.predict(features)
+        return self.kmeans.predict(features_normalized).astype(np.int32)
 
-    def assign_question(self, question_text: str) -> Tuple[int, float]:
-        """Assign a single question to the nearest cluster.
+    def assign_single(self, text: str) -> tuple[int, float]:
+        """Assign a single text to the nearest cluster.
 
         Args:
-            question_text: Raw question text
+            text: Input text string
 
         Returns:
             Tuple of (cluster_id, distance_to_centroid)
 
         Raises:
-            ValueError: If called before fit
+            ClusterNotConfiguredError: If configure() not called
+            ClusterNotFittedError: If called before fit
         """
+        self._check_configured()
+        assert self.feature_extractor is not None  # For mypy
+        assert self.kmeans is not None  # For mypy
+
+        if not self._is_fitted:
+            raise ClusterNotFittedError("Must call fit() before assign_single()")
+
         check_is_fitted(self, ["kmeans"])
 
-        # Extract features directly from text (no wrapper needed)
-        features = self.feature_extractor.transform([question_text])
+        # Extract features
+        features = self.feature_extractor.transform([text])
 
-        # Normalize features for spherical k-means (cosine similarity)
-        features = normalize(features, norm="l2")
+        # Normalize
+        features_normalized = normalize(features, norm="l2", copy=False)
 
         # Predict cluster and compute distance
-        cluster_id = int(self.kmeans.predict(features)[0])
-        distances = self.kmeans.transform(features)[0]
+        cluster_id = int(self.kmeans.predict(features_normalized)[0])
+        distances = self.kmeans.transform(features_normalized)[0]
         distance = float(distances[cluster_id])
 
         return cluster_id, distance
 
-    def save(self, filepath: Path) -> Dict[str, Path]:
-        """Save the clustering engine to JSON files.
-
-        Args:
-            filepath: Directory path to save the engine files
-
-        Returns:
-            Dictionary with paths to saved files
-
-        Raises:
-            Exception: If called before fit
-        """
-        if not hasattr(self, "kmeans") or not hasattr(self.kmeans, "cluster_centers_"):
-            raise ClusterNotFittedError("Cannot save unfitted")
-
-        filepath.mkdir(parents=True, exist_ok=True)
-
-        # Save cluster centers
-        cluster_centers_file = filepath / "cluster_centers.json"
-        cluster_data = {
-            "cluster_centers": self.kmeans.cluster_centers_.tolist(),
-            "cluster_assignments": {
-                q_id: int(cluster_id)
-                for q_id, cluster_id in zip(
-                    [f"q{i}" for i in range(len(self.cluster_assignments))],
-                    self.cluster_assignments,
-                )
-            },
-            "n_clusters": self.n_clusters,
-            "feature_info": {"total_dim": self.kmeans.cluster_centers_.shape[1]},
-        }
-        with open(cluster_centers_file, "w") as f:
-            json.dump(cluster_data, f, indent=2)
-
-        # Save metadata
-        metadata_file = filepath / "metadata.json"
-        metadata = {
-            "n_clusters": self.n_clusters,
-            "max_iter": self.max_iter,
-            "random_state": self.random_state,
-            "n_init": self.n_init,
-            "algorithm": self.kmeans.algorithm,
-            "embedding_model": self.embedding_model,
-            "tfidf_max_features": self.tfidf_max_features,
-            "tfidf_ngram_range": list(self.tfidf_ngram_range),
-            "silhouette_score": float(self.silhouette),
-            "n_iter_": int(self.kmeans.n_iter_),
-            "inertia_": float(self.kmeans.inertia_),
-            "n_features_in_": int(self.kmeans.n_features_in_),
-            "feature_extractor": {
-                "is_fitted": self.feature_extractor.is_fitted,
-                "tfidf_vocabulary": {
-                    k: int(v)
-                    for k, v in self.feature_extractor.tfidf_vectorizer.vocabulary_.items()
-                },
-                "tfidf_idf": self.feature_extractor.tfidf_vectorizer.idf_.tolist(),
-                "embedding_scaler": {
-                    "mean": self.feature_extractor.embedding_scaler.mean_.tolist(),
-                    "var": self.feature_extractor.embedding_scaler.var_.tolist(),
-                    "scale": self.feature_extractor.embedding_scaler.scale_.tolist(),
-                },
-                "tfidf_scaler": {
-                    "mean": self.feature_extractor.tfidf_scaler.mean_.tolist(),
-                    "var": self.feature_extractor.tfidf_scaler.var_.tolist(),
-                    "scale": self.feature_extractor.tfidf_scaler.scale_.tolist(),
-                },
-            },
-        }
-        with open(metadata_file, "w") as f:
-            json.dump(metadata, f, indent=2)
-
-        logger.info(f"Saved cluster engine to {filepath}")
-        return {"cluster_file": cluster_centers_file, "metadata_file": metadata_file}
-
-    @classmethod
-    def load(cls, filepath: Path) -> "ClusterEngine":
-        """Load a clustering engine from JSON files.
-
-        Args:
-            filepath: Directory path containing the engine files
-
-        Returns:
-            Loaded ClusterEngine instance
-        """
-        cluster_file = filepath / "cluster_centers.json"
-        metadata_file = filepath / "metadata.json"
-
-        with open(cluster_file) as f:
-            cluster_data = json.load(f)
-
-        with open(metadata_file) as f:
-            metadata = json.load(f)
-
-        # Reconstruct the engine
-        engine = cls(
-            n_clusters=metadata["n_clusters"],
-            max_iter=metadata["max_iter"],
-            random_state=metadata["random_state"],
-            n_init=metadata["n_init"],
-            embedding_model=metadata["embedding_model"],
-            tfidf_max_features=metadata["tfidf_max_features"],
-            tfidf_ngram_range=tuple(metadata["tfidf_ngram_range"]),
-        )
-
-        # Set fitted state
-        from sklearn.cluster import KMeans
-        import numpy as np
-
-        # Reconstruct KMeans with all saved parameters
-        engine.kmeans = KMeans(
-            n_clusters=metadata["n_clusters"],
-            max_iter=metadata["max_iter"],
-            random_state=metadata["random_state"],
-            n_init=metadata["n_init"],
-            algorithm=metadata["algorithm"],
-        )
-
-        # Restore fitted attributes
-        engine.kmeans.cluster_centers_ = np.array(cluster_data["cluster_centers"])
-        engine.kmeans.labels_ = np.array(
-            list(cluster_data["cluster_assignments"].values())
-        )
-        engine.kmeans.n_iter_ = metadata["n_iter_"]
-        engine.kmeans.inertia_ = metadata["inertia_"]
-        # Set n_features_in_ if it exists (sklearn >= 1.0)
-        setattr(engine.kmeans, "n_features_in_", metadata["n_features_in_"])
-        engine.kmeans._n_threads = 1  # Set default thread count
-
-        engine.cluster_assignments = engine.kmeans.labels_
-        engine.silhouette = metadata["silhouette_score"]
-
-        # Restore feature extractor state
-        fe_state = metadata["feature_extractor"]
-        engine.feature_extractor.tfidf_vectorizer.vocabulary_ = fe_state[
-            "tfidf_vocabulary"
-        ]
-        engine.feature_extractor.tfidf_vectorizer.idf_ = np.array(fe_state["tfidf_idf"])
-        engine.feature_extractor.embedding_scaler.mean_ = np.array(
-            fe_state["embedding_scaler"]["mean"]
-        )
-        engine.feature_extractor.embedding_scaler.var_ = np.array(
-            fe_state["embedding_scaler"]["var"]
-        )
-        engine.feature_extractor.embedding_scaler.scale_ = np.array(
-            fe_state["embedding_scaler"]["scale"]
-        )
-        engine.feature_extractor.embedding_scaler.n_features_in_ = (
-            engine.kmeans.n_features_in_
-        )
-        engine.feature_extractor.tfidf_scaler.mean_ = np.array(
-            fe_state["tfidf_scaler"]["mean"]
-        )
-        engine.feature_extractor.tfidf_scaler.var_ = np.array(
-            fe_state["tfidf_scaler"]["var"]
-        )
-        engine.feature_extractor.tfidf_scaler.scale_ = np.array(
-            fe_state["tfidf_scaler"]["scale"]
-        )
-        engine.feature_extractor.tfidf_scaler.n_features_in_ = (
-            engine.kmeans.n_features_in_
-        )
-        engine.feature_extractor.is_fitted = fe_state["is_fitted"]
-
-        logger.info(f"Loaded cluster engine from {filepath}")
-        return engine
-
     @property
-    def cluster_stats(self) -> Dict[str, Any]:
-        """Get information about clustering results.
+    def cluster_stats(self) -> ClusterStats:
+        """Get statistics about clustering results.
 
         Returns:
             Dictionary with clustering statistics
 
         Raises:
-            RuntimeError: If called before fit
+            ClusterNotFittedError: If called before fit
         """
+        if not self._is_fitted:
+            raise ClusterNotFittedError(
+                "Must call fit() before accessing cluster_stats"
+            )
+
         check_is_fitted(self, ["kmeans"])
 
         if len(self.cluster_assignments) == 0:
-            raise RuntimeError("Must call fit() before accessing cluster_stats")
+            raise ClusterNotFittedError("No cluster assignments available")
 
         unique, counts = np.unique(self.cluster_assignments, return_counts=True)
 
-        return {
-            "n_clusters": self.n_clusters,
-            "n_questions": len(self.cluster_assignments),
-            "silhouette_score": self.silhouette,
-            "cluster_sizes": {
+        return ClusterStats(
+            n_clusters=self.n_clusters,
+            n_samples=len(self.cluster_assignments),
+            silhouette_score=self.silhouette,
+            cluster_sizes={
                 int(cluster_id): int(count) for cluster_id, count in zip(unique, counts)
             },
-            "min_cluster_size": int(counts.min()),
-            "max_cluster_size": int(counts.max()),
-            "avg_cluster_size": float(counts.mean()),
-        }
+            min_cluster_size=int(counts.min()),
+            max_cluster_size=int(counts.max()),
+            avg_cluster_size=float(counts.mean()),
+        )
