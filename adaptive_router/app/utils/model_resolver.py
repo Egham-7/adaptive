@@ -1,150 +1,99 @@
-"""Model resolution utilities for the Adaptive Router application."""
+"""Model resolution utilities for the Adaptive Router application.
+
+These helpers operate directly on the models embedded inside the router
+profile so that the FastAPI service no longer depends on the external
+model registry.
+"""
+
+from __future__ import annotations
 
 import logging
-from typing import List, Optional
+from collections import defaultdict
+from typing import Iterable, List
 
-from app.models import RegistryModel
 from adaptive_router.models.api import Model
 
 logger = logging.getLogger(__name__)
 
 
-def _registry_model_to_model(
-    registry_model: RegistryModel,
-) -> Optional[Model]:
-    """Convert a RegistryModel to a Model for library compatibility.
+def _normalise_identifier(value: str) -> str:
+    """Normalize model identifier components for comparison."""
+    return value.strip().lower()
 
-    Args:
-        registry_model: The registry model to convert
 
-    Returns:
-        Model object if conversion succeeds, None if pricing is missing/invalid
+def _build_model_indexes(
+    available_models: Iterable[Model],
+) -> tuple[dict[str, Model], dict[str, list[str]]]:
+    """Create lookup dictionaries for available models."""
+    models_by_id: dict[str, Model] = {}
+    models_by_author: dict[str, list[str]] = defaultdict(list)
 
-    Note:
-        Returns None (with warning logged) for models with:
-        - Missing pricing information
-        - Invalid pricing values (None, negative, or zero)
-        - Unparseable pricing strings
-    """
-    # Extract pricing information (costs are per token, convert to per million tokens)
-    prompt_cost_per_million = 0.0
-    completion_cost_per_million = 0.0
-
-    if registry_model.pricing:
-        try:
-            # Handle None pricing values - they should be treated as missing
-            if (
-                registry_model.pricing.prompt_cost is None
-                or registry_model.pricing.completion_cost is None
-            ):
-                raise ValueError("Pricing values cannot be None")
-
-            prompt_cost = float(registry_model.pricing.prompt_cost)
-            completion_cost = float(registry_model.pricing.completion_cost)
-
-            # Check for invalid (negative) pricing values
-            # Registry uses negative values like -1000000.0 as sentinel for "no pricing"
-            # Zero costs are now accepted as valid
-            if prompt_cost < 0 or completion_cost < 0:
-                logger.warning(
-                    "Skipping model '%s' with invalid pricing: "
-                    "prompt_cost=%s, completion_cost=%s (must be non-negative)",
-                    registry_model.unique_id(),
-                    prompt_cost,
-                    completion_cost,
-                )
-                return None
-
-            # Convert from per-token to per-million-tokens
-            prompt_cost_per_million = prompt_cost * 1_000_000
-            completion_cost_per_million = completion_cost * 1_000_000
-        except (ValueError, TypeError) as e:
+    for model in available_models:
+        model_id = model.unique_id()
+        if model_id in models_by_id:
             logger.warning(
-                "Skipping model '%s' - failed to parse pricing: "
-                "prompt_cost='%s', completion_cost='%s' (%s)",
-                registry_model.unique_id(),
-                registry_model.pricing.prompt_cost,
-                registry_model.pricing.completion_cost,
-                e,
+                "Duplicate model '%s' detected in profile, using first entry", model_id
             )
-            return None
-    else:
-        # If pricing is missing entirely
-        logger.warning(
-            "Skipping model '%s' - no pricing information", registry_model.unique_id()
-        )
-        return None
+            continue
 
-    return Model(
-        provider=registry_model.author,
-        model_name=registry_model.model_name,
-        cost_per_1m_input_tokens=prompt_cost_per_million,
-        cost_per_1m_output_tokens=completion_cost_per_million,
-    )
+        models_by_id[model_id] = model
+        author_key = _normalise_identifier(model.provider)
+        models_by_author[author_key].append(model_id)
+
+    return models_by_id, models_by_author
 
 
 def resolve_models(
     model_specs: List[str],
-    registry_models: List[RegistryModel],
+    available_models: List[Model],
 ) -> List[Model]:
-    """Resolve a list of model specifications to Model objects using exact matching.
+    """Resolve user-specified model IDs against the loaded router profile.
 
     Args:
-        model_specs: List of model specifications in "provider/model_name" format
-        registry_models: List of all available registry models
+        model_specs: Model identifiers in "provider/model_name" format.
+        available_models: Models embedded inside the router profile.
 
     Returns:
-        List of resolved Model objects
+        List of Model objects referenced by ``model_specs`` in the order provided.
 
     Raises:
-        ValueError: If any model specification is invalid, cannot be resolved, or has missing/invalid pricing
+        ValueError: If a spec is malformed or the referenced model is unavailable.
     """
-    resolved_models = []
+    if not available_models:
+        raise ValueError("No models loaded in router profile")
 
+    models_by_id, models_by_author = _build_model_indexes(available_models)
+
+    resolved_models: list[Model] = []
     for spec in model_specs:
         try:
             author, model_name = spec.split("/", 1)
-        except ValueError as e:
+        except ValueError as exc:
             raise ValueError(
                 f"Invalid model specification '{spec}': expected format 'author/model_name'"
-            ) from e
+            ) from exc
 
-        # Find exact match
-        candidates = [
-            m
-            for m in registry_models
-            if (m.author and m.author.lower() == author.lower())
-            and (m.model_name and m.model_name.lower() == model_name.lower())
-        ]
+        author_key = _normalise_identifier(author)
+        model_key = _normalise_identifier(model_name)
+        lookup_key = f"{author_key}/{model_key}"
 
-        if not candidates:
-            # Show available models from the same author if any
-            author_models = [
-                m.unique_id()
-                for m in registry_models
-                if m.author and m.author.lower() == author.lower()
-            ]
-
-            error_msg = f"Model '{spec}' not found in registry"
-            if author_models:
-                suggestions = author_models[:5]
-                error_msg += f". Available {author} models: {', '.join(suggestions)}"
-                if len(author_models) > 5:
-                    error_msg += f" (and {len(author_models) - 5} more)"
-
-            raise ValueError(error_msg)
-
-        if len(candidates) > 1:
-            raise ValueError(
-                f"Multiple models found for '{spec}': "
-                f"{[m.unique_id() for m in candidates]}"
-            )
-
-        model = _registry_model_to_model(candidates[0])
+        model = models_by_id.get(lookup_key)
         if model is None:
+            suggestions = models_by_author.get(author_key, [])
+            suggestion_text = ""
+            if suggestions:
+                preview = ", ".join(suggestions[:5])
+                suffix = (
+                    ""
+                    if len(suggestions) <= 5
+                    else f" (and {len(suggestions) - 5} more)"
+                )
+                suggestion_text = f". Available {author} models: {preview}{suffix}"
+
             raise ValueError(
-                f"Model '{spec}' found in registry but has invalid/missing pricing"
+                f"Model '{spec}' not found in router profile{suggestion_text}"
             )
+
         resolved_models.append(model)
 
     return resolved_models

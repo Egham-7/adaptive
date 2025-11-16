@@ -10,32 +10,21 @@ from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, AsyncIterator
-import httpx
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from adaptive_router.core.router import ModelRouter
-from adaptive_router.models.api import ModelSelectionRequest
+from adaptive_router.models.api import Model, ModelSelectionRequest
+from adaptive_router.models.storage import RouterProfile
 
-from app.models import (
-    ModelSelectionAPIRequest,
-)
-from app.models import (
-    RegistryConnectionError,
-    RegistryResponseError,
-    RegistryClientConfig,
-)
-from app.registry import ModelRegistry
+from app.models import ModelSelectionAPIRequest
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
 
-from app.registry.client import AsyncRegistryClient
-from app.utils import (
-    resolve_models,
-)
+from app.utils import resolve_models
 
 
 env_file = Path(".env")
@@ -51,34 +40,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def extract_model_ids_from_profile(profile) -> list[str]:
-    """Extract model IDs from a RouterProfile.
-
-    Args:
-        profile: RouterProfile object with llm_profiles
-
-    Returns:
-        List of model IDs (e.g., ["openai/gpt-4", "anthropic/claude-3"])
-    """
+def extract_model_ids_from_profile(profile: RouterProfile) -> list[str]:
+    """Extract model IDs from a RouterProfile."""
     return list(profile.llm_profiles.keys())
 
 
-# Inlined from model_router_factory.py
-async def create_model_router(settings: AppSettings) -> ModelRouter:
-    """Create ModelRouter with MinIO and ModelRegistry integration.
-
-    Args:
-        settings: Application settings containing MinIO and registry configuration
-
-    Returns:
-        Configured ModelRouter instance
-
-    Raises:
-        ValueError: If model costs cannot be loaded from registry
-    """
+async def create_model_router(
+    settings: AppSettings,
+) -> tuple[ModelRouter, RouterProfile]:
+    """Create ModelRouter and return the loaded profile."""
     logger.info("Creating ModelRouter...")
 
     from adaptive_router.models.storage import MinIOSettings
+    from adaptive_router.loaders.minio import MinIOProfileLoader
 
     minio_settings = MinIOSettings(
         endpoint_url=settings.minio_private_endpoint,
@@ -91,18 +65,14 @@ async def create_model_router(settings: AppSettings) -> ModelRouter:
         read_timeout=int(settings.s3_read_timeout),
     )
 
-    # Load profile first to determine which models we need
-    from adaptive_router.loaders.minio import MinIOProfileLoader
-
     loader = MinIOProfileLoader.from_settings(minio_settings)
     profile = loader.load_profile()
 
-    # Create router using the from_profile method
     router = ModelRouter.from_profile(profile=profile)
 
     logger.info("ModelRouter created successfully")
 
-    return router
+    return router, profile
 
 
 class AppState:
@@ -112,8 +82,7 @@ class AppState:
         """Initialize application state."""
         self.settings: AppSettings | None = None
         self.router: ModelRouter | None = None
-        self.registry: ModelRegistry | None = None
-        self.registry_client: AsyncRegistryClient | None = None
+        self.available_models: list[Model] | None = None
 
 
 def create_app() -> FastAPI:
@@ -124,7 +93,6 @@ def create_app() -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         """Lifespan event handler for startup/shutdown."""
         try:
-            # Initialize settings
             app_state.settings = AppSettings()
 
             logger.info(
@@ -138,46 +106,15 @@ def create_app() -> FastAPI:
                 app_state.settings.port,
             )
 
-            # Load profile first to determine which models we need
-            logger.info("Loading router profile...")
-            from adaptive_router.models.storage import MinIOSettings
-
-            minio_settings = MinIOSettings(
-                endpoint_url=app_state.settings.minio_private_endpoint,
-                root_user=app_state.settings.minio_root_user,
-                root_password=app_state.settings.minio_root_password,
-                bucket_name=app_state.settings.s3_bucket_name,
-                region=app_state.settings.s3_region,
-                profile_key=app_state.settings.s3_profile_key,
-                connect_timeout=int(app_state.settings.s3_connect_timeout),
-                read_timeout=int(app_state.settings.s3_read_timeout),
+            logger.info("Loading router profile and initializing services...")
+            router, profile = await create_model_router(app_state.settings)
+            app_state.router = router
+            app_state.available_models = list(profile.models)
+            logger.info(
+                "Loaded profile with %d model IDs",
+                len(extract_model_ids_from_profile(profile)),
             )
-            from adaptive_router.loaders.minio import MinIOProfileLoader
-
-            loader = MinIOProfileLoader.from_settings(minio_settings)
-            profile = loader.load_profile()
-            profile_model_ids = extract_model_ids_from_profile(profile)
-            logger.info("Loaded profile with %d model IDs", len(profile_model_ids))
-
-            # Initialize ModelRouter with profile models
-            logger.info("Initializing ModelRouter...")
-            app_state.router = await create_model_router(app_state.settings)
             logger.info("ModelRouter initialized successfully")
-
-            # Initialize ModelResolverService with only profile models
-            logger.info("Initializing ModelResolverService...")
-            config = RegistryClientConfig(
-                base_url=app_state.settings.model_registry_base_url,
-                timeout=app_state.settings.model_registry_timeout,
-            )
-            registry_client = AsyncRegistryClient(
-                config,
-                httpx.AsyncClient(timeout=app_state.settings.model_registry_timeout),
-            )
-            app_state.registry_client = registry_client
-            models = await registry_client.list_models()
-            app_state.registry = ModelRegistry(registry_client, models)
-            logger.info("ModelResolverService initialized successfully")
 
             logger.info("FastAPI application started successfully")
         except Exception as e:
@@ -186,10 +123,7 @@ def create_app() -> FastAPI:
 
         yield
 
-        # Cleanup on shutdown
         logger.info("Shutting down Adaptive Router...")
-        if app_state.registry_client is not None:
-            await app_state.registry_client._client.aclose()
 
     app = FastAPI(
         title="Adaptive Router",
@@ -201,7 +135,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure CORS
     def configure_cors() -> None:
         """Configure CORS middleware."""
         settings = app_state.settings or AppSettings()
@@ -215,7 +148,6 @@ def create_app() -> FastAPI:
 
     configure_cors()
 
-    # Dependencies
     @lru_cache()
     def get_settings() -> AppSettings:
         """Get application settings dependency."""
@@ -223,34 +155,25 @@ def create_app() -> FastAPI:
             app_state.settings = AppSettings()
         return app_state.settings
 
-    async def get_registry_client() -> AsyncRegistryClient:
-        """Get AsyncRegistryClient dependency."""
-        if app_state.registry_client is None:
-            settings = get_settings()
-            config = RegistryClientConfig(
-                base_url=settings.model_registry_base_url,
-                timeout=settings.model_registry_timeout,
-            )
-            http_client = httpx.AsyncClient(timeout=settings.model_registry_timeout)
-            app_state.registry_client = AsyncRegistryClient(config, http_client)
-        return app_state.registry_client
-
-    def get_registry() -> ModelRegistry:
-        """Get ModelRegistry dependency."""
-        if app_state.registry is None:
-            raise RuntimeError("Registry not initialized")
-        return app_state.registry
-
     async def get_router() -> ModelRouter:
         """Get ModelRouter dependency."""
         if app_state.router is None:
             settings = get_settings()
             logger.info("Lazy-initializing ModelRouter...")
-            app_state.router = await create_model_router(settings)
+            router, profile = await create_model_router(settings)
+            app_state.router = router
+            app_state.available_models = list(profile.models)
             logger.info("ModelRouter initialized successfully")
         return app_state.router
 
-    # Health check endpoint
+    async def get_available_models() -> list[Model]:
+        """Return the list of models from the loaded router profile."""
+        if app_state.available_models is None:
+            await get_router()
+        if app_state.available_models is None:
+            raise RuntimeError("Router profile not loaded yet")
+        return app_state.available_models
+
     @app.get(
         "/health",
         response_model=HealthCheckResponse,
@@ -260,49 +183,22 @@ def create_app() -> FastAPI:
             503: {"description": "One or more services unhealthy"},
         },
     )
-    async def health_check(
-        settings: Annotated[AppSettings, Depends(get_settings)],
-        registry_client: Annotated[AsyncRegistryClient, Depends(get_registry_client)],
-    ) -> HealthCheckResponse:
-        """Comprehensive health check including registry connectivity.
-
-        Returns health status of:
-        - Model registry connectivity
-        - Router initialization status
-        """
+    async def health_check() -> HealthCheckResponse:
+        """Comprehensive health check for router and profile models."""
         overall_status = HealthStatus.HEALTHY
 
-        # Check registry health
-        registry_start = time.perf_counter()
-        try:
-            await registry_client.health_check()
+        if app_state.available_models:
             registry_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
-                message="Registry is accessible",
-                response_time_ms=round(
-                    (time.perf_counter() - registry_start) * 1000, 2
-                ),
+                message=f"{len(app_state.available_models)} models loaded from profile",
             )
-        except (RegistryConnectionError, RegistryResponseError) as e:
+        else:
             overall_status = HealthStatus.UNHEALTHY
             registry_health = ServiceHealth(
                 status=HealthStatus.UNHEALTHY,
-                message=f"Registry connection failed: {e}",
-                response_time_ms=round(
-                    (time.perf_counter() - registry_start) * 1000, 2
-                ),
-            )
-        except Exception as e:
-            overall_status = HealthStatus.DEGRADED
-            registry_health = ServiceHealth(
-                status=HealthStatus.DEGRADED,
-                message=f"Registry check error: {e}",
-                response_time_ms=round(
-                    (time.perf_counter() - registry_start) * 1000, 2
-                ),
+                message="Router profile not loaded",
             )
 
-        # Check router status
         if app_state.router is not None:
             router_health = ServiceHealth(
                 status=HealthStatus.HEALTHY,
@@ -325,7 +221,6 @@ def create_app() -> FastAPI:
             router=router_health,
         )
 
-    # Model selection endpoint
     @app.post(
         "/select-model",
         response_model=ModelSelectionAPIResponse,
@@ -339,32 +234,16 @@ def create_app() -> FastAPI:
         request: ModelSelectionAPIRequest,
         http_request: Request,
         router: Annotated[ModelRouter, Depends(get_router)],
-        registry: Annotated[ModelRegistry, Depends(get_registry)],
-        registry_client: Annotated[AsyncRegistryClient, Depends(get_registry_client)],
-        settings: Annotated[AppSettings, Depends(get_settings)],
+        available_models: Annotated[list[Model], Depends(get_available_models)],
     ) -> ModelSelectionAPIResponse:
-        """Select optimal model based on prompt analysis.
-
-        Args:
-            request: Model selection request with prompt and preferences
-            http_request: FastAPI request object for logging
-            router: Injected ModelRouter dependency
-
-        Returns:
-            ModelSelectionResponse with selected model and alternatives
-
-        Raises:
-            HTTPException: 400 for validation errors, 500 for server errors
-        """
+        """Select optimal model based on prompt analysis."""
         start_time = time.perf_counter()
 
         try:
-            # Resolve model specifications to RegistryModel objects
             resolved_models = None
-            all_models = registry.list_models()
             if request.models:
                 try:
-                    resolved_models = resolve_models(request.models, all_models)
+                    resolved_models = resolve_models(request.models, available_models)
                 except ValueError as e:
                     logger.error("Model resolution failed: %s", e, exc_info=True)
                     raise HTTPException(
@@ -372,7 +251,6 @@ def create_app() -> FastAPI:
                         detail=f"Model resolution failed: {e}",
                     ) from e
 
-            # Create internal request
             internal_request = ModelSelectionRequest(
                 prompt=request.prompt,
                 user_id=request.user_id,
@@ -406,7 +284,6 @@ def create_app() -> FastAPI:
                 },
             )
 
-            # Return simplified response with model IDs only
             selected_model_id = response.model_id
             alternative_model_ids = [alt.model_id for alt in response.alternatives]
 
