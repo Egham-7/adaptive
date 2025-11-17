@@ -20,6 +20,10 @@ API_TIMEOUT_MS=3000000
 # Use adaptive/auto to enable intelligent routing for optimal cost/performance
 DEFAULT_PRIMARY_MODEL="adaptive/auto"
 DEFAULT_FAST_MODEL="adaptive/auto"
+DEFAULT_OPUS_MODEL="adaptive/auto"
+DEFAULT_SONNET_MODEL="adaptive/auto"
+DEFAULT_HAIKU_MODEL="adaptive/auto"
+DEFAULT_CLAUDE_CODE_SUBAGENT="adaptive/auto"
 
 # ========================
 #       Utility Functions
@@ -199,6 +203,10 @@ configure_claude() {
   # Check for model overrides
   local primary_model="${ADAPTIVE_PRIMARY_MODEL:-$DEFAULT_PRIMARY_MODEL}"
   local fast_model="${ADAPTIVE_FAST_MODEL:-$DEFAULT_FAST_MODEL}"
+  local opus_model="${ADAPTIVE_DEFAULT_OPUS_MODEL:-$DEFAULT_OPUS_MODEL}"
+  local sonnet_model="${ADAPTIVE_DEFAULT_SONNET_MODEL:-$DEFAULT_SONNET_MODEL}"
+  local haiku_model="${ADAPTIVE_DEFAULT_HAIKU_MODEL:-$DEFAULT_HAIKU_MODEL}"
+  local claude_code_subagent="${ADAPTIVE_CLAUDE_CODE_SUBAGENT:-$DEFAULT_CLAUDE_CODE_SUBAGENT}"
 
   # Validate model overrides if provided
   if [ "$primary_model" != "$DEFAULT_PRIMARY_MODEL" ]; then
@@ -253,10 +261,10 @@ configure_claude() {
      echo '    "API_TIMEOUT_MS": "3000000",'
      echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
      echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto",'
-     echo '    "ANTHROPIC_DEFAULT_OPUS_MODEL": "adaptive/auto",'
-     echo '    "ANTHROPIC_DEFAULT_SONNET_MODEL": "adaptive/auto",'
-     echo '    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adaptive/auto",'
-     echo '    "CLAUDE_CODE_SUBAGENT_MODEL": "adaptive/auto"'
+      echo '    "ANTHROPIC_DEFAULT_OPUS_MODEL": "'"$opus_model"'",'
+      echo '    "ANTHROPIC_DEFAULT_SONNET_MODEL": "'"$sonnet_model"'",'
+      echo '    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "'"$haiku_model"'",'
+      echo '    "CLAUDE_CODE_SUBAGENT_MODEL": "'"$claude_code_subagent"'"'
      echo "  }"
      echo "}"
      echo "EOF"
@@ -312,6 +320,10 @@ configure_claude() {
         const apiKey = "'"$api_key"'";
         const primaryModel = "'"$primary_model"'";
         const fastModel = "'"$fast_model"'";
+        const opusModel = "'"$opus_model"'";
+        const sonnetModel = "'"$sonnet_model"'";
+        const haikuModel = "'"$haiku_model"'";
+        const claudeCodeSubagent = "'"$claude_code_subagent"'";
 
         const content = fs.existsSync(filePath)
             ? JSON.parse(fs.readFileSync(filePath, "utf-8"))
@@ -325,10 +337,10 @@ configure_claude() {
                 API_TIMEOUT_MS: "'"$API_TIMEOUT_MS"'",
                 ANTHROPIC_MODEL: primaryModel,
                 ANTHROPIC_SMALL_FAST_MODEL: fastModel,
-                ANTHROPIC_DEFAULT_OPUS_MODEL: "adaptive/auto",
-                ANTHROPIC_DEFAULT_SONNET_MODEL: "adaptive/auto",
-                ANTHROPIC_DEFAULT_HAIKU_MODEL: "adaptive/auto",
-                CLAUDE_CODE_SUBAGENT_MODEL: "adaptive/auto",
+                ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+                ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
+                ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
+                CLAUDE_CODE_SUBAGENT_MODEL: claudeCodeSubagent,
             }
         }, null, 2), "utf-8");
     ' || {
