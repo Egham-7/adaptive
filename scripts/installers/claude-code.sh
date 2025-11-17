@@ -251,19 +251,23 @@ configure_claude() {
     echo "   export ADAPTIVE_FAST_MODEL='anthropic/claude-4-5-haiku'  # or adaptive/auto for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash"
     echo ""
-    echo "⚙️  Option 4: Manual configuration (Advanced users)"
-    echo "   mkdir -p ~/.claude"
-    echo "   cat > ~/.claude/settings.json << 'EOF'"
-    echo "{"
-    echo '  "env": {'
-    echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
-    echo '    "ANTHROPIC_BASE_URL": "https://api.llmadaptive.uk/api",'
-    echo '    "API_TIMEOUT_MS": "3000000",'
-    echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
-    echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto"'
-    echo "  }"
-    echo "}"
-    echo "EOF"
+     echo "⚙️  Option 4: Manual configuration (Advanced users)"
+     echo "   mkdir -p ~/.claude"
+     echo "   cat > ~/.claude/settings.json << 'EOF'"
+     echo "{"
+     echo '  "env": {'
+     echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
+     echo '    "ANTHROPIC_BASE_URL": "https://api.llmadaptive.uk/api",'
+     echo '    "API_TIMEOUT_MS": "3000000",'
+     echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
+     echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto",'
+     echo '    "ANTHROPIC_DEFAULT_OPUS_MODEL": "adaptive/auto",'
+     echo '    "ANTHROPIC_DEFAULT_SONNET_MODEL": "adaptive/auto",'
+     echo '    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "adaptive/auto",'
+     echo '    "CLAUDE_CODE_SUBAGENT_MODEL": "adaptive/auto"'
+     echo "  }"
+     echo "}"
+     echo "EOF"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
     exit 1
@@ -329,6 +333,10 @@ configure_claude() {
                 API_TIMEOUT_MS: "'"$API_TIMEOUT_MS"'",
                 ANTHROPIC_MODEL: primaryModel,
                 ANTHROPIC_SMALL_FAST_MODEL: fastModel,
+                ANTHROPIC_DEFAULT_OPUS_MODEL: "adaptive/auto",
+                ANTHROPIC_DEFAULT_SONNET_MODEL: "adaptive/auto",
+                ANTHROPIC_DEFAULT_HAIKU_MODEL: "adaptive/auto",
+                CLAUDE_CODE_SUBAGENT_MODEL: "adaptive/auto",
             }
         }, null, 2), "utf-8");
     ' || {
