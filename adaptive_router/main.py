@@ -4,6 +4,7 @@ Provides HTTP API endpoints for intelligent model selection using cluster-based 
 """
 
 import logging
+import os
 import sys
 import time
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from adaptive_router.core.router import ModelRouter
 from adaptive_router.models.api import Model, ModelSelectionRequest
 from adaptive_router.models.storage import RouterProfile
+from adaptive_router.exceptions.core import ModelNotFoundError
 
 from app.models import ModelSelectionAPIRequest
 from app.config import AppSettings
@@ -27,12 +29,21 @@ from app.models import ModelSelectionAPIResponse
 from app.utils import resolve_models
 
 
-env_file = Path(".env")
-if env_file.exists():
-    load_dotenv(env_file)
+_ENV_PATHS = [
+    Path(".env"),
+    Path(__file__).resolve().parent.parent / ".env",
+]
+
+for env_path in _ENV_PATHS:
+    if env_path.exists():
+        load_dotenv(env_path)
+        break
+
+log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()
+log_level = getattr(logging, log_level_name, logging.INFO)
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     stream=sys.stdout,
 )
@@ -54,8 +65,17 @@ async def create_model_router(
     from adaptive_router.models.storage import MinIOSettings
     from adaptive_router.loaders.minio import MinIOProfileLoader
 
+    endpoint = settings.minio_endpoint
+    if settings.minio_private_endpoint and settings.minio_private_endpoint.strip():
+        endpoint_source = "private"
+    elif settings.minio_public_endpoint and settings.minio_public_endpoint.strip():
+        endpoint_source = "public"
+    else:
+        endpoint_source = "default"
+    logger.info("Using %s MinIO endpoint: %s", endpoint_source, endpoint)
+
     minio_settings = MinIOSettings(
-        endpoint_url=settings.minio_private_endpoint,
+        endpoint_url=endpoint,
         root_user=settings.minio_root_user,
         root_password=settings.minio_root_password,
         bucket_name=settings.s3_bucket_name,
@@ -95,16 +115,8 @@ def create_app() -> FastAPI:
         try:
             app_state.settings = AppSettings()
 
-            logger.info(
-                "Starting Adaptive Router on http://%s:%d",
-                app_state.settings.host,
-                app_state.settings.port,
-            )
-            logger.info(
-                "API Docs: http://%s:%d/docs",
-                app_state.settings.host,
-                app_state.settings.port,
-            )
+            logger.info("Starting Adaptive Router service")
+            logger.info("API Docs available at /docs once server is running")
 
             logger.info("Loading router profile and initializing services...")
             router, profile = await create_model_router(app_state.settings)
@@ -242,8 +254,14 @@ def create_app() -> FastAPI:
         try:
             resolved_models = None
             if request.models:
+                logger.debug("Requested model filters: %s", request.models)
                 try:
                     resolved_models = resolve_models(request.models, available_models)
+                    logger.debug(
+                        "Resolved %d models from request: %s",
+                        len(resolved_models),
+                        [model.unique_id() for model in resolved_models],
+                    )
                 except ValueError as e:
                     logger.error("Model resolution failed: %s", e, exc_info=True)
                     raise HTTPException(
@@ -291,6 +309,18 @@ def create_app() -> FastAPI:
                 selected_model=selected_model_id,
                 alternatives=alternative_model_ids,
             )
+
+        except ModelNotFoundError as e:
+            elapsed = time.perf_counter() - start_time
+            logger.error(
+                "Requested models unavailable: %s",
+                e,
+                extra={"elapsed_ms": round(elapsed * 1000, 2)},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            ) from e
 
         except ValueError as e:
             elapsed = time.perf_counter() - start_time

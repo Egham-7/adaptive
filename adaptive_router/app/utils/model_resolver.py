@@ -98,4 +98,10 @@ def resolve_models(
     for skipped in skipped_specs:
         logger.warning("Requested model ignored: %s", skipped)
 
+    if not resolved_models:
+        skipped_msg = f" ({'; '.join(skipped_specs)})" if skipped_specs else ""
+        raise ValueError(
+            f"No requested models are available in the router profile{skipped_msg}"
+        )
+
     return resolved_models
