@@ -139,24 +139,18 @@ Response:
 Environment variables:
 
 ```bash
-# Server
-HOST=0.0.0.0
-PORT=8000
-
-# FastAPI
-FASTAPI_ACCESS_LOG=true
-FASTAPI_LOG_LEVEL=info
-
 # MinIO S3 Storage (Railway deployment)
 S3_BUCKET_NAME=adaptive-router-profiles
+MINIO_PRIVATE_ENDPOINT=http://localhost:9000
 MINIO_PUBLIC_ENDPOINT=https://minio.railway.app
 MINIO_ROOT_USER=your_minio_user
 MINIO_ROOT_PASSWORD=your_minio_password
 
-# Debug
-DEBUG=false
+# Logging
 LOG_LEVEL=INFO
 ```
+
+If both `MINIO_PRIVATE_ENDPOINT` and `MINIO_PUBLIC_ENDPOINT` are provided, the service prefers the private endpoint; otherwise it falls back to the public endpoint, and finally to `http://localhost:9000` for local development.
 
 ## How It Works
 

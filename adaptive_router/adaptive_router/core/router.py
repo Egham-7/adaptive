@@ -439,7 +439,7 @@ class ModelRouter:
 
         # Extract and validate allowed models if provided
         allowed_model_ids: list[str] | None = None
-        if request.models:
+        if request.models is not None:
             allowed_model_ids = self._filter_models_by_request(request.models)
 
         # Map cost_bias (0.0=cheap, 1.0=quality) to cost_preference
@@ -658,6 +658,11 @@ class ModelRouter:
             ModelNotFoundError: If requested models are not supported or no models match filters
         """
         supported = self.get_supported_models()
+        logger.debug(
+            "Filtering request models. supported=%d request=%d",
+            len(supported),
+            len(models),
+        )
 
         # Separate full model specs from partial filters
         explicit_models = []
@@ -704,6 +709,11 @@ class ModelRouter:
                     f"Supported models: {supported}"
                 )
             allowed_model_ids.extend(provider_filtered)
+            logger.debug(
+                "Provider filters matched %d models: %s",
+                len(provider_filtered),
+                provider_filtered,
+            )
 
         # 3. Future filters can be added here (e.g., capability filters, cost filters)
         # Example:
@@ -717,15 +727,28 @@ class ModelRouter:
         # Remove duplicates while preserving order (using dict.fromkeys)
         if allowed_model_ids:
             unique_models = list(dict.fromkeys(allowed_model_ids))
-
-            # Ensure we have at least one model after filtering
             if not unique_models:
                 raise ModelNotFoundError(
-                    f"No supported models remain after filtering. "
-                    f"Requested models were filtered out. "
-                    f"Supported models: {supported}"
+                    "No supported models remain after filtering. "
+                    f"Requested models were filtered out. Supported models: {supported}"
                 )
+            logger.debug("Final allowed models after filtering: %s", unique_models)
             return unique_models
+
+        if models:
+            requested_descriptions: list[str] = []
+            for m in models:
+                if m.provider and m.model_name:
+                    requested_descriptions.append(
+                        f"{m.provider.lower()}/{m.model_name.lower()}"
+                    )
+                elif m.provider:
+                    requested_descriptions.append(f"{m.provider.lower()}/*")
+            requested_text = requested_descriptions or ["<unspecified>"]
+            raise ModelNotFoundError(
+                "Requested models are not supported by the router: "
+                f"{requested_text}. Supported models: {supported}"
+            )
 
         # No filters specified - use all models
         return None

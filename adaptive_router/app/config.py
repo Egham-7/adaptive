@@ -4,10 +4,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Constants
-DEFAULT_HOST = "0.0.0.0"
-DEFAULT_PORT = 8000
-DEFAULT_REGISTRY_TIMEOUT = 5.0
-DEFAULT_MODEL_COST = 1.0
+DEFAULT_MINIO_ENDPOINT = "http://localhost:9000"
 FUZZY_MATCH_SIMILARITY_THRESHOLD = 0.8
 
 
@@ -21,28 +18,14 @@ class AppSettings(BaseSettings):
         extra="ignore",
     )
 
-    # Server settings
-    host: str = Field(default=DEFAULT_HOST, description="Server host")
-    port: int = Field(default=DEFAULT_PORT, description="Server port")
-
-    # Model Registry settings
-    model_registry_base_url: str = Field(
-        default="http://localhost:3000",
-        description="Base URL for model registry",
-    )
-    model_registry_timeout: float = Field(
-        default=DEFAULT_REGISTRY_TIMEOUT,
-        description="Timeout for registry requests in seconds",
-    )
-    default_model_cost: float = Field(
-        default=DEFAULT_MODEL_COST,
-        description="Default cost per 1M tokens when registry pricing is missing",
-    )
-
     # MinIO/S3 settings
-    minio_private_endpoint: str = Field(
-        default="http://localhost:9000",
+    minio_private_endpoint: str | None = Field(
+        default=None,
         description="Private MinIO endpoint URL",
+    )
+    minio_public_endpoint: str | None = Field(
+        default=None,
+        description="Public MinIO endpoint URL",
     )
     minio_root_user: str = Field(default="minioadmin", description="MinIO root user")
     minio_root_password: str = Field(
@@ -77,3 +60,12 @@ class AppSettings(BaseSettings):
             for origin in self.allowed_origins.split(",")
             if origin.strip()
         ]
+
+    @property
+    def minio_endpoint(self) -> str:
+        """Return the preferred MinIO endpoint, falling back from private to public."""
+        if self.minio_private_endpoint and self.minio_private_endpoint.strip():
+            return self.minio_private_endpoint.strip()
+        if self.minio_public_endpoint and self.minio_public_endpoint.strip():
+            return self.minio_public_endpoint.strip()
+        return DEFAULT_MINIO_ENDPOINT
