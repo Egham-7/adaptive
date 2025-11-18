@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from core import FeatureExtractor
+from adaptive_router.core import FeatureExtractor
 from adaptive_router.exceptions.core import FeatureExtractionError
 
 

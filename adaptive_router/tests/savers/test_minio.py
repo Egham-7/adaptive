@@ -78,7 +78,7 @@ def minio_settings() -> MinIOSettings:
 class TestMinIOProfileSaver:
     """Test MinIOProfileSaver."""
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_init(self, mock_boto3_client):
         """Test MinIOProfileSaver initialization."""
         mock_s3 = MagicMock()
@@ -103,7 +103,7 @@ class TestMinIOProfileSaver:
         assert call_args[1]["aws_access_key_id"] == "test-user"
         assert call_args[1]["aws_secret_access_key"] == "test-password"
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_from_settings(self, mock_boto3_client, minio_settings):
         """Test creating saver from MinIOSettings."""
         mock_s3 = MagicMock()
@@ -115,8 +115,8 @@ class TestMinIOProfileSaver:
         assert saver.profile_key == "test-profile.json"
         assert saver.endpoint_url == "http://localhost:9000"
 
-    @patch("savers.minio.boto3.client")
-    @patch("savers.minio.get_writer")
+    @patch("adaptive_router.savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.get_writer")
     def test_save_profile_s3_path(
         self, mock_get_writer, mock_boto3_client, sample_profile
     ):
@@ -149,8 +149,8 @@ class TestMinIOProfileSaver:
             ContentType="application/json",
         )
 
-    @patch("savers.minio.boto3.client")
-    @patch("savers.minio.get_writer")
+    @patch("adaptive_router.savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.get_writer")
     def test_save_profile_minio_path(
         self, mock_get_writer, mock_boto3_client, sample_profile
     ):
@@ -183,7 +183,7 @@ class TestMinIOProfileSaver:
             ContentType="application/json",
         )
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_save_profile_invalid_s3_path(self, mock_boto3_client, sample_profile):
         """Test saving profile with invalid S3 path raises ValueError."""
         mock_s3 = MagicMock()
@@ -204,7 +204,7 @@ class TestMinIOProfileSaver:
         with pytest.raises(ValueError, match="Invalid MinIO path format"):
             saver.save_profile(sample_profile, "minio://invalid-path")
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_save_profile_invalid_path_format(self, mock_boto3_client, sample_profile):
         """Test saving profile with invalid path format raises ValueError."""
         mock_s3 = MagicMock()
@@ -222,8 +222,8 @@ class TestMinIOProfileSaver:
         with pytest.raises(ValueError, match="Invalid path format"):
             saver.save_profile(sample_profile, "invalid://bucket/key")
 
-    @patch("savers.minio.boto3.client")
-    @patch("savers.minio.get_writer")
+    @patch("adaptive_router.savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.get_writer")
     def test_save_profile_client_error(
         self, mock_get_writer, mock_boto3_client, sample_profile
     ):
@@ -251,7 +251,7 @@ class TestMinIOProfileSaver:
         with pytest.raises(IOError, match="MinIO upload failed"):
             saver.save_profile(sample_profile, "s3://my-bucket/my-profile.json")
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_health_check_success(self, mock_boto3_client):
         """Test health check returns True when bucket is accessible."""
         mock_s3 = MagicMock()
@@ -270,7 +270,7 @@ class TestMinIOProfileSaver:
         assert result is True
         mock_s3.head_bucket.assert_called_once_with(Bucket="test-bucket")
 
-    @patch("savers.minio.boto3.client")
+    @patch("adaptive_router.savers.minio.boto3.client")
     def test_health_check_failure(self, mock_boto3_client):
         """Test health check returns False when bucket is not accessible."""
         mock_s3 = MagicMock()

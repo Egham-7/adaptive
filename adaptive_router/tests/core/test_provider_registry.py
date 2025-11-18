@@ -4,7 +4,7 @@ import pytest
 from deepeval.models import DeepEvalBaseLLM
 
 from adaptive_router.core.provider_registry import ProviderRegistry, default_registry
-from evaluators import (
+from adaptive_router.evaluators import (
     AnthropicModel,
     GPTModel,
     GeminiModel,
