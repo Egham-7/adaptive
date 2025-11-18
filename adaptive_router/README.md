@@ -1,291 +1,159 @@
-# Adaptive Router
+# Adaptive Router Package
 
-Intelligent LLM model selection library with integrated ML-powered prompt classification.
+Core Python package for intelligent LLM model selection.
 
-## Quick Start
+## Package Structure
 
-### As a Library
+```
+adaptive_router/
+├── __init__.py              # Public API exports
+├── models/                  # Pydantic data models
+│   ├── llm_core_models.py          # Request/response models
+│   └── llm_classification_models.py # Classification results
+├── services/                # Business logic
+│   ├── model_router.py              # Main router (public API)
+│   ├── model_registry.py            # Model metadata management
+│   ├── yaml_model_loader.py         # YAML config loader
+│   └── prompt_task_complexity_classifier.py  # ML classifier
+└── utils/                   # Utilities
+    └── jwt.py                       # JWT authentication
+```
+
+## Public API
+
+The package exports the following for library usage:
+
+### Core Classes
+
+```python
+from adaptive_router import (
+    ModelRouter,              # Main entry point
+    ModelSelectionRequest,    # Request model
+    ModelSelectionResponse,   # Response model
+    ModelCapability,          # Model metadata
+    PromptClassifier,        # ML classifier
+    YAMLModelDatabase,       # Model database
+    ModelRegistry,           # Model registry
+)
+```
+
+### Main Usage
 
 ```python
 from adaptive_router import ModelRouter, ModelSelectionRequest
 
-# Initialize router (handles all dependencies internally)
+# Initialize (handles all dependencies)
 router = ModelRouter()
 
-# Make a selection request
-request = ModelSelectionRequest(
-    prompt="Write a Python function to sort a list",
-    cost_bias=0.5  # 0.0 = cheapest, 1.0 = most capable
-)
-
-# Get the best model
+# Make selection
+request = ModelSelectionRequest(prompt="Your prompt here")
 response = router.select_model(request)
-print(f"Selected: {response.provider}/{response.model}")
-print(f"Alternatives: {response.alternatives}")
 ```
 
-### As a Service
+## Services
 
-```bash
-# Install dependencies
-uv install
+### ModelRouter
 
-# Start FastAPI server
-uv run adaptive-router
+**File**: `services/model_router.py`
 
-# API available at http://localhost:8000
-# Docs at http://localhost:8000/docs
-```
+Main public API. Orchestrates classification and model selection.
 
+**Public Method**:
+- `select_model(request: ModelSelectionRequest) -> ModelSelectionResponse`
 
-## Features
+**Internal Dependencies** (auto-initialized):
+- `PromptClassifier`: ML-based prompt analysis
+- `ModelRegistry`: Model metadata and filtering
+- `YAMLModelDatabase`: YAML-based model config
 
-- **Cluster-Based Routing**: UniRouter algorithm with K-means clustering
-- **Local Feature Extraction**: Sentence transformers + TF-IDF (no external API calls)
-- **Cost Optimization**: Balances performance vs. cost based on user preferences
-- **Two Deployment Modes**: Python library or FastAPI HTTP server
-- **MinIO S3 Integration**: Loads cluster profiles from Railway-hosted storage
-- **Smart Model Selection**: Per-cluster error rates for optimal routing
-- **YAML-Based Model Database**: Easy configuration of models and pricing
+### PromptClassifier
 
-## Architecture
+**File**: `services/prompt_task_complexity_classifier.py`
 
-```
-adaptive_router/
-├── adaptive_router/          # Main package
-│   ├── api/                 # FastAPI server
-│   │   └── app.py           # HTTP endpoints
-│   ├── cli.py               # CLI entry point
-│   ├── models/              # Pydantic models
-│   ├── services/            # Core routing logic
-│   │   ├── model_router.py              # Public API
-│   │   ├── router_service.py            # Router integration
-│   │   ├── router.py                    # Core routing
-│   │   ├── cluster_engine.py            # K-means clustering
-│   │   ├── feature_extractor.py         # ML feature extraction
-│   │   └── storage_profile_loader.py    # MinIO S3 loader
-│   └── config/              # YAML configurations
-├── tests/                   # Unit & integration tests
-└── pyproject.toml           # Dependencies + CLI script
-```
+NVIDIA DeBERTa-based ML classifier for prompt analysis.
 
-## API
+**Features**:
+- Task type classification
+- Complexity scoring (0.0-1.0)
+- Domain knowledge assessment
+- Direct GPU/CPU inference
 
-### Library API
-
+**Usage**:
 ```python
-from adaptive_router import ModelRouter, ModelSelectionRequest, ModelCapability
+from adaptive_router import PromptClassifier
 
-router = ModelRouter()
+classifier = PromptClassifier()
+result = classifier.classify_prompt("Write a sorting algorithm")
+# Returns dict with task_type_1, prompt_complexity_score, etc.
+```
 
-# Basic usage
-request = ModelSelectionRequest(prompt="Explain quantum computing")
-response = router.select_model(request)
+### ModelRegistry
 
-# With specific models
-request = ModelSelectionRequest(
-    prompt="Write a sorting algorithm",
-    models=[
-        ModelCapability(provider="openai", model_name="gpt-4"),
-        ModelCapability(provider="anthropic", model_name="claude-3-5-sonnet-20241022")
-    ],
-    cost_bias=0.3
+**File**: `registry/registry.py`
+
+Caches model metadata fetched from the Adaptive model registry service.
+
+**Features**:
+- Fetches canonical model definitions via `RegistryClient`
+- In-memory lookup by unique identifier or model name
+- Lightweight filtering helpers for local routing logic
+
+**Usage**:
+```python
+from adaptive_router.registry import (
+    ModelRegistry,
+    RegistryClient,
+    RegistryClientConfig,
 )
-response = router.select_model(request)
+
+client = AsyncRegistryClient(RegistryClientConfig(base_url="http://localhost:3000"))
+models = await client.list_models()
+registry = ModelRegistry(client, models)
+
+model = registry.get("openai/gpt-4")
+providers = registry.providers_for_model("gpt-4")
+all_models = registry.list_models()
 ```
 
-### HTTP API
+## Models
 
-**POST /select_model**
+### Core Models
 
-Request:
-```json
-{
-  "prompt": "Write a Python function to calculate factorial",
-  "cost_bias": 0.5,
-  "models": [
-    {
-      "provider": "openai",
-      "model_name": "gpt-4"
-    }
-  ]
-}
-```
+**File**: `models/llm_core_models.py`
 
-Response:
-```json
-{
-  "provider": "openai",
-  "model": "gpt-4",
-  "alternatives": [
-    {
-      "provider": "anthropic",
-      "model": "claude-3-5-sonnet-20241022"
-    }
-  ]
-}
-```
+- `ModelSelectionRequest`: Input to select_model()
+- `ModelSelectionResponse`: Output from select_model()
+- `ModelCapability`: Model metadata and capabilities
+- `Alternative`: Alternative model recommendation
 
-**GET /health**
+## Design Principles
 
-```json
-{
-  "status": "healthy"
-}
-```
+1. **Single Entry Point**: `ModelRouter` is the only class users need
+2. **Automatic Dependencies**: All internal services are auto-initialized
+3. **Immutable Responses**: All models use Pydantic for validation
+4. **Type Safety**: Full type hints and mypy compliance
+5. **Privacy**: Internal methods prefixed with `_`
 
-## Configuration
+## Extension Points
 
-Environment variables:
+To add new providers:
 
-```bash
-# MinIO S3 Storage (Railway deployment)
-S3_BUCKET_NAME=adaptive-router-profiles
-MINIO_PRIVATE_ENDPOINT=http://localhost:9000
-MINIO_PUBLIC_ENDPOINT=https://minio.railway.app
-MINIO_ROOT_USER=your_minio_user
-MINIO_ROOT_PASSWORD=your_minio_password
+1. Add YAML file to `../model_data/data/provider_models/`
+2. Follow naming: `{provider}_models_structured.yaml`
+3. Restart to reload model database
 
-# Logging
-LOG_LEVEL=INFO
-```
+To customize classification:
 
-If both `MINIO_PRIVATE_ENDPOINT` and `MINIO_PUBLIC_ENDPOINT` are provided, the service prefers the private endpoint; otherwise it falls back to the public endpoint, and finally to `http://localhost:9000` for local development.
+1. Subclass `PromptClassifier`
+2. Override `classify_prompt()` method
+3. Pass to `ModelRouter(prompt_classifier=custom_classifier)`
 
-## How It Works
+## Testing
 
-1. **Feature Extraction**: Sentence transformers (384D embeddings) + TF-IDF (5000D features)
-2. **Cluster Assignment**: K-means predicts which of K clusters the prompt belongs to
-3. **Model Ranking**: For assigned cluster, ranks models by minimizing: `routing_score = error_rate + λ × normalized_cost` (lower is better)
-4. **Selection**: Returns best model with alternatives
+Unit tests in `../tests/unit/`:
+- `test_model_router.py`: Router logic tests
+- `test_registry_service.py`: Registry cache backed by HTTP client
+- `test_prompt_classifier.py`: Classifier tests
 
-### Cluster-Based Routing
-
-The router uses pre-trained clusters stored in MinIO:
-- **Clusters**: K clusters learned from historical prompts (typically K=10-50)
-- **Error Rates**: Each model has per-cluster error rates from past performance
-- **Features**: Combined semantic + lexical features for robust clustering
-- **Scaling**: StandardScaler normalization for consistent clustering
-
-### Cost Preference (λ)
-
-- `0.0`: Prefer cheapest models (prioritize cost savings)
-- `0.5`: Balance accuracy and cost
-- `1.0`: Prefer most accurate models (prioritize quality)
-
-## Development
-
-### Setup
-
-```bash
-# Install dependencies
-uv install
-
-# Install dev dependencies
-uv install --all-extras
-```
-
-### Testing
-
-```bash
-# Run all tests
-uv run pytest
-
-# Run unit tests only
-uv run pytest -m unit
-
-# Run with coverage
-uv run pytest --cov
-
-# Run specific test file
-uv run pytest tests/unit/services/test_model_router.py
-```
-
-### Code Quality
-
-```bash
-# Format code
-uv run black .
-
-# Lint
-uv run ruff check .
-
-# Fix linting issues
-uv run ruff check --fix .
-
-# Type checking
-uv run mypy .
-```
-
-### Make Commands
-
-```bash
-make test          # Run all tests
-make test-unit     # Run unit tests
-make test-cov      # Run with coverage
-make lint          # Check with ruff
-make lint-fix      # Fix issues
-make format        # Format with black
-make typecheck     # Type checking
-make quality       # All quality checks
-```
-
-## Model Configuration
-
-Models are defined in YAML files under `model_data/data/provider_models/`:
-
-```yaml
-# openai_models_structured.yaml
-models:
-  gpt-4:
-    model_name: "gpt-4"
-    cost_per_1m_input_tokens: 30.0
-    cost_per_1m_output_tokens: 60.0
-    max_context_tokens: 8192
-    supports_function_calling: true
-    task_type: "general"
-    complexity: "high"
-```
-
-Supported providers:
-- OpenAI
-- Anthropic
-- Groq
-- DeepSeek
-- Google AI (Gemini)
-- xAI (Grok)
-
-## Tech Stack
-
-- **ML Framework**: PyTorch 2.2+ with sentence-transformers
-- **Clustering**: scikit-learn K-means
-- **API Framework**: FastAPI 0.118+
-- **ASGI Server**: Hypercorn 0.17+
-- **Storage**: boto3 for MinIO S3
-- **Configuration**: Pydantic Settings
-- **Testing**: pytest with coverage
-
-## Performance
-
-- **Feature Extraction**: 20-50ms per request
-- **Cluster Assignment + Selection**: <10ms
-- **Total Latency**: 30-60ms per request
-- **Memory**: 2-4GB (sentence transformers + cluster profiles)
-- **Throughput**: 100-500 requests/second
-
-## Contributing
-
-1. Create feature branch from `dev`
-2. Implement changes with tests
-3. Run quality checks: `make quality`
-4. Submit PR with documentation updates
-
-## References
-
-This implementation is based on the UniRouter algorithm described in:
-
-**Jitkrittum, W., et al. (2025).** "Universal Model Routing for Efficient LLM Inference." *arXiv preprint arXiv:2502.08773*. Available at: https://arxiv.org/abs/2502.08773
-
-## License
-
-MIT
+Integration tests in `../tests/integration/`:
+- `test_api_endpoints.py`: End-to-end tests

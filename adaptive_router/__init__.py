@@ -36,38 +36,38 @@ Advanced Usage:
 # ============================================================================
 
 # Core services
-from adaptive_router.core.router import ModelRouter
-from adaptive_router.core.trainer import Trainer
+from .core.router import ModelRouter
+from .core.trainer import Trainer
 
 # Request/Response models
-from adaptive_router.models.api import (
+from .models.api import (
     Alternative,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
 
 # Training models
-from adaptive_router.models.train import ProviderConfig, TrainingResult
+from .models.train import ProviderConfig, TrainingResult
 
 # Storage configuration (needed for initialization)
-from adaptive_router.models.storage import MinIOSettings
+from .models.storage import MinIOSettings
 
 # ============================================================================
 # TIER 2: Configuration & Integration
 # ============================================================================
 
 # Model types for routing
-from adaptive_router.models.api import Model
+from .models.api import Model
 
 # Profile loaders (for custom profile loading)
-from adaptive_router.loaders import (
+from .loaders import (
     LocalFileProfileLoader,
     MinIOProfileLoader,
     ProfileLoader,
 )
 
 # Storage types (profile structure)
-from adaptive_router.models.storage import (
+from .models.storage import (
     ClusterCentersData,
     ProfileMetadata,
     RouterProfile,
@@ -77,7 +77,7 @@ from adaptive_router.models.storage import (
 )
 
 # Configuration types (YAML and routing config)
-from adaptive_router.models.config import (
+from .models.config import (
     ModelConfig,
     YAMLModelsConfig,
     YAMLRoutingConfig,
@@ -88,13 +88,13 @@ from adaptive_router.models.config import (
 # ============================================================================
 
 # Core ML components
-from adaptive_router.core import (
+from .core import (
     ClusterEngine,
     FeatureExtractor,
 )
 
 # Routing internals and public types
-from adaptive_router.models.routing import (
+from .models.routing import (
     ModelFeatureVector,
     ModelFeatures,
     ModelInfo,
@@ -103,7 +103,7 @@ from adaptive_router.models.routing import (
 )
 
 # Health check
-from adaptive_router.models.health import HealthResponse
+from .models.health import HealthResponse
 
 # ============================================================================
 # Package metadata

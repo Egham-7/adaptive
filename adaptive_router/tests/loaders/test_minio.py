@@ -85,7 +85,7 @@ def mock_s3_client():
 class TestMinIOProfileLoaderInitialization:
     """Test MinIOProfileLoader initialization."""
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_initialization_with_valid_params(self, mock_boto3_client, mock_s3_client):
         """Test loader initializes with valid parameters."""
         mock_boto3_client.return_value = mock_s3_client
@@ -109,7 +109,7 @@ class TestMinIOProfileLoaderInitialization:
         assert call_args[1]["aws_access_key_id"] == "test-user"
         assert call_args[1]["aws_secret_access_key"] == "test-password"
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_initialization_with_custom_timeouts(
         self, mock_boto3_client, mock_s3_client
     ):
@@ -133,7 +133,7 @@ class TestMinIOProfileLoaderInitialization:
         assert config.connect_timeout == 10
         assert config.read_timeout == 60
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_from_settings_classmethod(
         self, mock_boto3_client, mock_s3_client, minio_settings
     ):
@@ -152,7 +152,7 @@ class TestMinIOProfileLoaderInitialization:
 class TestMinIOProfileLoaderLoadProfile:
     """Test MinIOProfileLoader load_profile method."""
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_load_profile_success(
         self, mock_boto3_client, mock_s3_client, valid_profile_data
     ):
@@ -186,7 +186,7 @@ class TestMinIOProfileLoaderLoadProfile:
             Bucket="test-bucket", Key="profiles/test.json"
         )
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_load_profile_with_missing_key(self, mock_boto3_client, mock_s3_client):
         """Test loading profile with missing key raises FileNotFoundError."""
         mock_boto3_client.return_value = mock_s3_client
@@ -215,7 +215,7 @@ class TestMinIOProfileLoaderLoadProfile:
         with pytest.raises(FileNotFoundError, match="Profile not found in MinIO"):
             loader.load_profile()
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_load_profile_with_corrupted_json(self, mock_boto3_client, mock_s3_client):
         """Test loading corrupted JSON raises ValueError."""
         mock_boto3_client.return_value = mock_s3_client
@@ -237,7 +237,7 @@ class TestMinIOProfileLoaderLoadProfile:
         with pytest.raises(ValueError, match="Corrupted JSON"):
             loader.load_profile()
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_load_profile_with_invalid_schema(self, mock_boto3_client, mock_s3_client):
         """Test loading profile with invalid schema raises ValueError."""
         mock_boto3_client.return_value = mock_s3_client
@@ -259,7 +259,7 @@ class TestMinIOProfileLoaderLoadProfile:
         with pytest.raises(ValueError, match="validation"):
             loader.load_profile()
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_load_profile_with_client_error(self, mock_boto3_client, mock_s3_client):
         """Test loading profile with ClientError raises exception."""
         mock_boto3_client.return_value = mock_s3_client
@@ -286,7 +286,7 @@ class TestMinIOProfileLoaderLoadProfile:
 class TestMinIOProfileLoaderHealthCheck:
     """Test MinIOProfileLoader health_check method."""
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_health_check_success(self, mock_boto3_client, mock_s3_client):
         """Test health check returns True when bucket is accessible."""
         mock_boto3_client.return_value = mock_s3_client
@@ -308,7 +308,7 @@ class TestMinIOProfileLoaderHealthCheck:
         assert result is True
         mock_s3_client.head_bucket.assert_called_once_with(Bucket="test-bucket")
 
-    @patch("adaptive_router.loaders.minio.boto3.client")
+    @patch("loaders.minio.boto3.client")
     def test_health_check_failure(self, mock_boto3_client, mock_s3_client):
         """Test health check returns False when bucket is not accessible."""
         mock_boto3_client.return_value = mock_s3_client

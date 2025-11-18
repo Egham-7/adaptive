@@ -1,14 +1,16 @@
 # Agent Development Guide
 
 ## Build/Test Commands
+
 - **Install**: `uv install` (dev: `uv install --all-extras`)
 - **Test All**: `uv run pytest`
 - **Test Unit**: `uv run pytest -m unit` (fast, no external deps)
 - **Test Single**: `uv run pytest tests/unit/services/test_model_router.py::TestModelRouter::test_initialization -vv`
 - **Coverage**: `uv run pytest --cov --cov-report=html`
-- **Run Server**: `fastapi dev adaptive_router/app.py` (dev) or `hypercorn adaptive_router.app:app --bind 0.0.0.0:8000` (prod)
+- **Run Server**: `fastapi dev main.py` (dev) or `hypercorn adaptive_router.app:app --bind 0.0.0.0:8000` (prod)
 
 ## Code Style
+
 - **Format**: `uv run black .` (88 chars, Python 3.11+)
 - **Lint**: `uv run ruff check .` (fix: `--fix`)
 - **Types**: `uv run mypy .` (strict, Pydantic plugin enabled)
@@ -19,17 +21,3 @@
 - **Docstrings**: Google style for public APIs, explain "why" not "what"
 - **Tests**: AAA pattern (Arrange/Act/Assert), mark with `@pytest.mark.unit` or `@pytest.mark.integration`
 
-## Commit Guidelines
-- Don't add yourself as co-author to commits
-
-# Usage Specs <!-- tessl-managed -->
-
-[Usage specs](.tessl/framework/usage-specs.md) provide important context for third-party dependencies: @.tessl/framework/usage-specs.md
-
-# Agent Rules <!-- tessl-managed -->
-
-@RULES.md follow the [instructions](RULES.md)
-
-# Knowledge Index <!-- tessl-managed -->
-
-Documentation for dependencies and processes can be found in the [Knowledge Index](./KNOWLEDGE.md)
