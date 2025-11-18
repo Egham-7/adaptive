@@ -1,6 +1,6 @@
 # Adaptive Router
 
-**Intelligent LLM Model Selection via ML-Powered Clustering**
+## Intelligent LLM Model Selection via ML-Powered Clustering
 
 Reduce costs by 30-70% using cluster-based routing with per-cluster error rates and prompt analysis.
 

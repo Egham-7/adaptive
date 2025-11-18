@@ -4,7 +4,7 @@ Core Python package for intelligent LLM model selection.
 
 ## Package Structure
 
-```
+```text
 adaptive_router/
 ├── __init__.py              # Public API exports
 ├── models/                  # Pydantic data models
