@@ -5,27 +5,33 @@ on:
     branches: [dev]
     paths:
       - "adaptive_router/**"
+      - "app/**"
+      - "train/**"
+      - "main.py"
+      - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/model-router-dev-ci.yml"
       - ".github/scripts/**"
   pull_request:
     branches: [dev]
     paths:
       - "adaptive_router/**"
+      - "app/**"
+      - "train/**"
+      - "main.py"
+      - "pyproject.toml"
+      - "uv.lock"
       - ".github/workflows/model-router-dev-ci.yml"
       - ".github/scripts/**"
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.12"
-  WORKING_DIR: "./adaptive_router"
 
 jobs:
   test:
     name: Test & Coverage - Model Router
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -52,7 +58,7 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@v5
         with:
-          file: ${{ env.WORKING_DIR }}/coverage.xml
+          file: ./coverage.xml
           flags: backend-python
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -60,9 +66,6 @@ jobs:
   lint:
     name: Lint & Format - Model Router
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
