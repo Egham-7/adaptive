@@ -149,9 +149,9 @@ LOG_LEVEL=INFO                  # Logging level
 Use adaptive_router as a Python library in your code:
 
 ```python
-from adaptive_router.core.router import ModelRouter
-from adaptive_router.models.routing import RoutingRequest
-from adaptive_router.loaders.minio import MinIOProfileLoader
+from core.router import ModelRouter
+from models.routing import RoutingRequest
+from loaders.minio import MinIOProfileLoader
 
 # Initialize profile loader from MinIO
 loader = MinIOProfileLoader.from_env()
@@ -405,6 +405,7 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 **File**: `adaptive_router/core/router.py`
 
 The `ModelRouter` class is the main entry point for intelligent model selection:
+
 - Cluster-based routing using UniRouter algorithm
 - Accepts `RoutingRequest` with prompt and cost preference
 - Returns `RoutingResponse` with selected model and reasoning
@@ -417,6 +418,7 @@ The `ModelRouter` class is the main entry point for intelligent model selection:
 **File**: `adaptive_router/core/cluster_engine.py`
 
 The `ClusterEngine` handles K-means clustering operations:
+
 - Loads pre-trained cluster centers from storage profiles
 - Assigns prompts to clusters using K-means prediction
 - Manages cluster metadata and silhouette scores
@@ -428,6 +430,7 @@ The `ClusterEngine` handles K-means clustering operations:
 **File**: `adaptive_router/core/feature_extractor.py`
 
 The `FeatureExtractor` converts prompts to feature vectors:
+
 - Sentence transformer embeddings using `all-MiniLM-L6-v2` (384D)
 - TF-IDF features for lexical patterns (5000D)
 - StandardScaler normalization for both feature types
@@ -442,17 +445,20 @@ The `FeatureExtractor` converts prompts to feature vectors:
 Profile loading system with multiple implementations:
 
 **Base Loader** (`loaders/base.py`):
+
 - `ProfileLoader` abstract base class
 - Defines interface for loading cluster profiles
 - Returns `ClusterProfile` with centers, error rates, scalers
 
 **MinIO Loader** (`loaders/minio.py`):
+
 - `MinIOProfileLoader` for S3-compatible storage
 - Loads profiles from Railway-hosted MinIO
 - Supports environment-based configuration
 - Connection pooling and retry logic
 
 **Local Loader** (`loaders/local.py`):
+
 - `LocalFileProfileLoader` for file-based profiles
 - Used for testing and offline development
 - Supports pickle and JSON formats
@@ -464,12 +470,14 @@ Profile loading system with multiple implementations:
 Integration with external model registry service for model metadata:
 
 **Registry Client** (`app/registry/client.py`):
+
 - HTTP client for model registry API
 - Fetches model metadata (pricing, capabilities, context limits)
 - Supports provider/model validation
 - Caching layer for performance
 
 **Registry Models** (`app/registry/models.py`):
+
 - Model cache with TTL expiration
 - Provider model listings
 - Fuzzy matching support for model resolution
@@ -480,11 +488,13 @@ Integration with external model registry service for model metadata:
 **Files**: `app/utils/`
 
 **Fuzzy Matching** (`app/utils/fuzzy_matching.py`):
+
 - Fuzzy model name matching using string similarity
 - Handles common typos and variations
 - Provider-specific model name normalization
 
 **Model Resolver** (`app/utils/model_resolver.py`):
+
 - Resolves model names to canonical forms
 - Integrates registry client with fuzzy matching
 - Provides fallback strategies for unknown models
@@ -544,11 +554,13 @@ Integration with external model registry service for model metadata:
 Model metadata (pricing, capabilities, context limits) is now fetched from an **external model registry service** via HTTP API, replacing the legacy YAML-based configuration system.
 
 **Registry Client Configuration** (`app/config.py`):
+
 - `REGISTRY_API_URL` - Base URL for model registry service
 - `REGISTRY_CACHE_TTL` - Cache time-to-live for model metadata (seconds)
 - `REGISTRY_TIMEOUT` - HTTP request timeout for registry calls (seconds)
 
 **Example Registry Response**:
+
 ```json
 {
   "provider": "openai",
@@ -566,12 +578,14 @@ Model metadata (pricing, capabilities, context limits) is now fetched from an **
 Cluster profiles (centers, error rates, scalers) are loaded from **MinIO S3 storage** via the profile loader system:
 
 **MinIO Configuration** (Environment Variables):
+
 - `S3_BUCKET_NAME` - MinIO bucket name for cluster profiles
 - `MINIO_PUBLIC_ENDPOINT` - MinIO endpoint URL
 - `MINIO_ROOT_USER` - MinIO access key
 - `MINIO_ROOT_PASSWORD` - MinIO secret key
 
 **Profile Structure**:
+
 - `cluster_centers.pkl` - K-means cluster centroids (numpy array)
 - `error_rates.json` - Per-cluster error rates for each model
 - `scaler.pkl` - StandardScaler for feature normalization
@@ -696,9 +710,9 @@ The service is included in the root `docker-compose.yml` with proper networking 
 ```bash
 # Test model router
 python -c "
-from adaptive_router.core.router import ModelRouter
-from adaptive_router.models.routing import RoutingRequest
-from adaptive_router.loaders.minio import MinIOProfileLoader
+from core.router import ModelRouter
+from models.routing import RoutingRequest
+from loaders.minio import MinIOProfileLoader
 
 loader = MinIOProfileLoader.from_env()
 router = ModelRouter(loader)
@@ -731,7 +745,7 @@ curl -X POST http://localhost:8000/select_model \
 
 # Check MinIO connectivity
 python -c "
-from adaptive_router.loaders.minio import MinIOProfileLoader
+from loaders.minio import MinIOProfileLoader
 loader = MinIOProfileLoader.from_env()
 profile = loader.load_profile()
 print(f'MinIO connection successful - loaded {len(profile.cluster_centers)} clusters')
@@ -808,15 +822,3 @@ print(f'MinIO connection successful - loaded {len(profile.cluster_centers)} clus
 3. Run full quality checks: `uv run black . && uv run ruff check . && uv run mypy . && uv run pytest --cov`
 4. **Update relevant documentation** (CLAUDE.md files, adaptive-docs/, README)
 5. Submit PR with performance impact analysis and documentation updates
-
-# Usage Specs <!-- tessl-managed -->
-
-[Usage specs](.tessl/framework/usage-specs.md) provide important context for third-party dependencies: @.tessl/framework/usage-specs.md
-
-# Agent Rules <!-- tessl-managed -->
-
-@RULES.md follow the [instructions](RULES.md)
-
-# Knowledge Index <!-- tessl-managed -->
-
-Documentation for dependencies and processes can be found in the [Knowledge Index](./KNOWLEDGE.md)

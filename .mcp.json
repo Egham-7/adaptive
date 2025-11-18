@@ -1,0 +1,11 @@
+ {
+  "mcpServers": {
+    "tessl": {
+      "type": "stdio",
+      "command": "tessl",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}
