@@ -3,26 +3,9 @@ name: Model Router Dev CI/CD
 on:
   push:
     branches: [dev]
-    paths:
-      - "adaptive_router/**"
-      - "app/**"
-      - "train/**"
-      - "main.py"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/model-router-dev-ci.yml"
-      - ".github/scripts/**"
+
   pull_request:
     branches: [dev]
-    paths:
-      - "adaptive_router/**"
-      - "app/**"
-      - "train/**"
-      - "main.py"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/model-router-dev-ci.yml"
-      - ".github/scripts/**"
   workflow_dispatch:
 
 env:
