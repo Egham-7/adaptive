@@ -20,6 +20,10 @@ API_TIMEOUT_MS=3000000
 # Use adaptive/auto to enable intelligent routing for optimal cost/performance
 DEFAULT_PRIMARY_MODEL="adaptive/auto"
 DEFAULT_FAST_MODEL="adaptive/auto"
+DEFAULT_OPUS_MODEL="adaptive/auto"
+DEFAULT_SONNET_MODEL="adaptive/auto"
+DEFAULT_HAIKU_MODEL="adaptive/auto"
+DEFAULT_CLAUDE_CODE_SUBAGENT="adaptive/auto"
 
 # ========================
 #       Utility Functions
@@ -51,7 +55,6 @@ create_config_backup() {
   local config_file="$1"
 
   if [ -f "$config_file" ]; then
-    local backup_file="${config_file}.bak"
     local timestamp=$(date +"%Y%m%d_%H%M%S")
     local timestamped_backup="${config_file}.${timestamp}.bak"
 
@@ -61,15 +64,8 @@ create_config_backup() {
       exit 1
     }
 
-    # Create/update .bak file for easy revert
-    cp "$config_file" "$backup_file" || {
-      log_error "Failed to create backup: $backup_file"
-      exit 1
-    }
-
-    log_success "Config backed up to: $backup_file"
-    log_info "Timestamped backup: $timestamped_backup"
-    log_info "To revert: cp \"$backup_file\" \"$config_file\""
+    log_success "Config backed up to: $timestamped_backup"
+    log_info "To revert: cp \"$timestamped_backup\" \"$config_file\""
   fi
 }
 
@@ -207,6 +203,10 @@ configure_claude() {
   # Check for model overrides
   local primary_model="${ADAPTIVE_PRIMARY_MODEL:-$DEFAULT_PRIMARY_MODEL}"
   local fast_model="${ADAPTIVE_FAST_MODEL:-$DEFAULT_FAST_MODEL}"
+  local opus_model="${ADAPTIVE_DEFAULT_OPUS_MODEL:-$DEFAULT_OPUS_MODEL}"
+  local sonnet_model="${ADAPTIVE_DEFAULT_SONNET_MODEL:-$DEFAULT_SONNET_MODEL}"
+  local haiku_model="${ADAPTIVE_DEFAULT_HAIKU_MODEL:-$DEFAULT_HAIKU_MODEL}"
+  local claude_code_subagent="${ADAPTIVE_CLAUDE_CODE_SUBAGENT:-$DEFAULT_CLAUDE_CODE_SUBAGENT}"
 
   # Validate model overrides if provided
   if [ "$primary_model" != "$DEFAULT_PRIMARY_MODEL" ]; then
@@ -251,19 +251,23 @@ configure_claude() {
     echo "   export ADAPTIVE_FAST_MODEL='anthropic/claude-4-5-haiku'  # or adaptive/auto for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash"
     echo ""
-    echo "⚙️  Option 4: Manual configuration (Advanced users)"
-    echo "   mkdir -p ~/.claude"
-    echo "   cat > ~/.claude/settings.json << 'EOF'"
-    echo "{"
-    echo '  "env": {'
-    echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
-    echo '    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api",'
-    echo '    "API_TIMEOUT_MS": "3000000",'
-    echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
-    echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto"'
-    echo "  }"
-    echo "}"
-    echo "EOF"
+     echo "⚙️  Option 4: Manual configuration (Advanced users)"
+     echo "   mkdir -p ~/.claude"
+     echo "   cat > ~/.claude/settings.json << 'EOF'"
+     echo "{"
+     echo '  "env": {'
+     echo '    "ANTHROPIC_AUTH_TOKEN": "your_api_key_here",'
+     echo '    "ANTHROPIC_BASE_URL": "https://api.llmadaptive.uk/api",'
+     echo '    "API_TIMEOUT_MS": "3000000",'
+     echo '    "ANTHROPIC_MODEL": "adaptive/auto",'
+     echo '    "ANTHROPIC_SMALL_FAST_MODEL": "adaptive/auto",'
+      echo '    "ANTHROPIC_DEFAULT_OPUS_MODEL": "'"$opus_model"'",'
+      echo '    "ANTHROPIC_DEFAULT_SONNET_MODEL": "'"$sonnet_model"'",'
+      echo '    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "'"$haiku_model"'",'
+      echo '    "CLAUDE_CODE_SUBAGENT_MODEL": "'"$claude_code_subagent"'"'
+     echo "  }"
+     echo "}"
+     echo "EOF"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
     exit 1
@@ -316,6 +320,10 @@ configure_claude() {
         const apiKey = "'"$api_key"'";
         const primaryModel = "'"$primary_model"'";
         const fastModel = "'"$fast_model"'";
+        const opusModel = "'"$opus_model"'";
+        const sonnetModel = "'"$sonnet_model"'";
+        const haikuModel = "'"$haiku_model"'";
+        const claudeCodeSubagent = "'"$claude_code_subagent"'";
 
         const content = fs.existsSync(filePath)
             ? JSON.parse(fs.readFileSync(filePath, "utf-8"))
@@ -329,6 +337,10 @@ configure_claude() {
                 API_TIMEOUT_MS: "'"$API_TIMEOUT_MS"'",
                 ANTHROPIC_MODEL: primaryModel,
                 ANTHROPIC_SMALL_FAST_MODEL: fastModel,
+                ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+                ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
+                ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
+                CLAUDE_CODE_SUBAGENT_MODEL: claudeCodeSubagent,
             }
         }, null, 2), "utf-8");
     ' || {
